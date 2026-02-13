@@ -1,0 +1,70 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand-yellow: #ffc20e;
+  --color-brand-blue: #121c3e;
+  --color-brand-blue-hover: #1a2850;
+  --color-bg-slate: #f8fafc;
+
+  --font-brand: "Inter", "Outfit", sans-serif;
+
+  --animate-like: like-animation 0.4s ease-in-out;
+}
+
+@keyframes like-animation {
+  0% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.3);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+:root {
+  font-family: var(--font-brand);
+  background-color: var(--color-bg-slate);
+  color: var(--color-brand-blue);
+}
+
+* {
+  scrollbar-width: none;
+  /* Firefox */
+  -ms-overflow-style: none;
+  /* IE and Edge */
+}
+
+*::-webkit-scrollbar {
+  display: none;
+  /* Chrome, Safari and Opera */
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+}
+
+/* Reusable styles for Like Buttons, Hover Effects */
+.btn-primary {
+  @apply bg-brand-yellow text-brand-blue font-bold px-4 py-2 rounded-lg transition-all duration-200 active:scale-95 shadow-sm hover:shadow-md;
+}
+
+.btn-sidebar {
+  @apply px-5 py-3 rounded-xl cursor-pointer transition-all duration-200 text-sm font-medium hover:bg-brand-blue-hover;
+}
+
+.btn-sidebar-active {
+  @apply bg-brand-yellow text-brand-blue shadow-md;
+}
+
+.card-hover {
+  @apply transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:border-brand-yellow/30;
+}
+
+.like-btn:active {
+  animation: var(--animate-like);
+}

@@ -1,0 +1,24 @@
+# Spring Boot
+backend/target/
+backend/*.log
+backend/*.class
+
+# React
+hrmsproject/node_modules/
+hrmsproject/build/
+
+# Root node files
+node_modules/
+
+# Environment files
+.env
+backend/.env
+hrmsproject/.env
+
+# IDE files
+.idea/
+.vscode/
+
+# OS files
+.DS_Store
+Thumbs.db
