@@ -12,12 +12,14 @@ const PersonalTimesheetContent = ({ employeeId, user, profileResolved = true }) 
     const [joiningDate, setJoiningDate] = useState(null);
 
     const [approvedLeaves, setApprovedLeaves] = useState([]);
+    const [holidays, setHolidays] = useState([]);
 
     useEffect(() => {
         if (employeeId) {
             fetchTimesheets(employeeId);
             fetchEmployeeDetails(employeeId);
             fetchApprovedLeaves(employeeId);
+            fetchHolidays();
         }
     }, [employeeId]);
 
@@ -42,6 +44,23 @@ const PersonalTimesheetContent = ({ employeeId, user, profileResolved = true }) 
             }
         } catch (err) {
             console.error("Error fetching approved leaves", err);
+        }
+    };
+
+    const fetchHolidays = async () => {
+        try {
+            const year = new Date().getFullYear();
+            const response = await fetch(`http://localhost:8080/api/holidays/year/${year}`, {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                },
+            });
+            const data = await response.json();
+            if (data && data.status === "success") {
+                setHolidays(data.data || []);
+            }
+        } catch (err) {
+            console.error("Error fetching holidays:", err);
         }
     };
 
@@ -279,6 +298,7 @@ const PersonalTimesheetContent = ({ employeeId, user, profileResolved = true }) 
                     weekData={selectedWeek}
                     employeeId={employeeId}
                     approvedLeaves={approvedLeaves}
+                    holidays={holidays}
                     readOnly={selectedWeek.status === 'Approved'}
                     onBack={() => setView('summary')}
                     onSave={handleSaveWeekly}

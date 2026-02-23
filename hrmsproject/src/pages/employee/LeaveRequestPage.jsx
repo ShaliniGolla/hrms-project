@@ -13,6 +13,7 @@ const LeaveRequestPage = ({ employeeId, leaveBalance, onLeaveRequestSuccess }) =
   const [leaveHistory, setLeaveHistory] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [holidays, setHolidays] = useState([]);
 
   // Fetch all leaves for this employee
   const fetchLeaveHistory = async () => {
@@ -48,8 +49,26 @@ const LeaveRequestPage = ({ employeeId, leaveBalance, onLeaveRequestSuccess }) =
     }
   };
 
+  const fetchHolidays = async () => {
+    try {
+      const year = new Date().getFullYear();
+      const response = await fetch(`http://localhost:8080/api/holidays/year/${year}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+      });
+      const data = await response.json();
+      if (data && data.status === "success") {
+        setHolidays(data.data || []);
+      }
+    } catch (err) {
+      console.error("Error fetching holidays:", err);
+    }
+  };
+
   useEffect(() => {
     fetchLeaveHistory();
+    fetchHolidays();
   }, [employeeId]);
 
   const handleInputChange = (e) => {
@@ -68,15 +87,58 @@ const LeaveRequestPage = ({ employeeId, leaveBalance, onLeaveRequestSuccess }) =
 
     let days = 0;
     let d = new Date(startDate);
+    const holidayDates = holidays.map(h => h.holidayDate);
+
     while (d <= endDate) {
       const day = d.getDay();
       const iso = d.toISOString().slice(0, 10);
-      if (day !== 0 && day !== 6 && (ignoreBlockedDates || !blockedDates.includes(iso))) {
+      const isWeekend = day === 0 || day === 6;
+      const isHoliday = holidayDates.includes(iso);
+      const isBlocked = !ignoreBlockedDates && blockedDates.includes(iso);
+
+      if (!isWeekend && !isHoliday && !isBlocked) {
         days++;
       }
       d.setDate(d.getDate() + 1);
     }
     return days;
+  };
+
+  const getDateBreakdown = () => {
+    if (!formData.startDate || !formData.endDate) return [];
+
+    const results = [];
+    let d = new Date(formData.startDate);
+    const end = new Date(formData.endDate);
+    const holidayDates = holidays.map(h => h.holidayDate);
+
+    while (d <= end) {
+      const iso = d.toISOString().slice(0, 10);
+      const dayOfWeek = d.getDay();
+      const dayName = d.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+      const monthDay = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }).toLowerCase();
+
+      const holiday = holidays.find(h => h.holidayDate === iso);
+      const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+
+      let label = "";
+      let type = "work";
+
+      if (holiday) {
+        label = `${holiday.holidayName} holiday`;
+        type = "holiday";
+      } else if (isWeekend) {
+        label = `${dayName}(weekend)`;
+        type = "weekend";
+      } else {
+        label = `${formData.leaveType.toLowerCase()} leave`;
+        type = "leave";
+      }
+
+      results.push({ date: monthDay, label, type });
+      d = new Date(d.setDate(d.getDate() + 1));
+    }
+    return results;
   };
 
   const handleRequest = async (e) => {
@@ -333,8 +395,9 @@ const LeaveRequestPage = ({ employeeId, leaveBalance, onLeaveRequestSuccess }) =
                       onBlur={e => {
                         const d = new Date(e.target.value);
                         const iso = e.target.value;
-                        if (iso && (d.getDay() === 0 || d.getDay() === 6 || blockedDates.includes(iso))) {
-                          toast.error('Start date cannot be a weekend or already requested/approved leave.');
+                        const isHoliday = holidays.some(h => h.holidayDate === iso);
+                        if (iso && (d.getDay() === 0 || d.getDay() === 6 || blockedDates.includes(iso) || isHoliday)) {
+                          toast.error(isHoliday ? 'Start date cannot be a holiday.' : 'Start date cannot be a weekend or already requested/approved leave.');
                           setFormData(f => ({ ...f, startDate: '' }));
                         }
                       }}
@@ -354,8 +417,9 @@ const LeaveRequestPage = ({ employeeId, leaveBalance, onLeaveRequestSuccess }) =
                       onBlur={e => {
                         const d = new Date(e.target.value);
                         const iso = e.target.value;
-                        if (iso && (d.getDay() === 0 || d.getDay() === 6 || blockedDates.includes(iso))) {
-                          toast.error('End date cannot be a weekend or already requested/approved leave.');
+                        const isHoliday = holidays.some(h => h.holidayDate === iso);
+                        if (iso && (d.getDay() === 0 || d.getDay() === 6 || blockedDates.includes(iso) || isHoliday)) {
+                          toast.error(isHoliday ? 'End date cannot be a holiday.' : 'End date cannot be a weekend or already requested/approved leave.');
                           setFormData(f => ({ ...f, endDate: '' }));
                         }
                       }}
@@ -363,6 +427,30 @@ const LeaveRequestPage = ({ employeeId, leaveBalance, onLeaveRequestSuccess }) =
                     />
                   </div>
                 </div>
+
+                {/* Breakdown Summary */}
+                {formData.startDate && formData.endDate && (
+                  <div className="bg-bg-slate/50 border border-brand-blue/5 rounded-2xl p-4 space-y-3">
+                    <h4 className="text-[10px] font-black text-brand-blue/60 uppercase tracking-widest pl-1">Leave Breakdown</h4>
+                    <div className="space-y-2">
+                      {getDateBreakdown().map((item, idx) => (
+                        <div key={idx} className="flex items-center justify-between px-3 py-2 bg-white/60 rounded-xl shadow-sm border border-brand-blue/5">
+                          <span className="text-[11px] font-black text-brand-blue/70 uppercase w-20">{item.date}</span>
+                          <span className={`text-[11px] font-bold px-3 py-1 rounded-lg flex-1 text-right ${item.type === 'holiday' ? 'text-amber-600' :
+                              item.type === 'weekend' ? 'text-slate-400' :
+                                'text-indigo-600'
+                            }`}>
+                            {item.label}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="pt-2 border-t border-brand-blue/5 flex justify-between items-center px-2">
+                      <span className="text-[11px] font-black text-brand-blue/80 uppercase">Total Leave Days</span>
+                      <span className="text-sm font-black text-brand-blue">{calculateLeaveDays(formData.startDate, formData.endDate)} Days</span>
+                    </div>
+                  </div>
+                )}
 
                 {/* Reason */}
                 <div className="space-y-2">

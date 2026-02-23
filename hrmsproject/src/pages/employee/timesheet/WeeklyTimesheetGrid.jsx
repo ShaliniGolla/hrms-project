@@ -3,7 +3,7 @@ import { toast } from 'react-toastify';
 
 const EMPTY_ARRAY = [];
 
-const WeeklyTimesheetGrid = ({ weekData, onBack, onSave, employeeId, approvedLeaves = EMPTY_ARRAY, readOnly = false, onApprove, onReject }) => {
+const WeeklyTimesheetGrid = ({ weekData, onBack, onSave, employeeId, approvedLeaves = EMPTY_ARRAY, holidays = EMPTY_ARRAY, readOnly = false, onApprove, onReject }) => {
     // Dates for the week (7 days)
     const [dates, setDates] = useState([]);
 
@@ -108,18 +108,25 @@ const WeeklyTimesheetGrid = ({ weekData, onBack, onSave, employeeId, approvedLea
                     });
                 });
 
+                // Auto-populate 8 hours for holidays
+                weekDates.forEach((ds, dayIdx) => {
+                    if (holidays.some(h => h.holidayDate === ds)) {
+                        holidaysRows[dayIdx] = { ...holidaysRows[dayIdx], value: '8.00' };
+                    }
+                });
+
                 const projectRowsList = Object.values(projects);
                 if (projectRowsList.length > 0) setProjectRows(projectRowsList);
                 setTruTimeRows({ swipe: swipes });
                 setLeaveRows({
-                    holiday: holidays,
+                    holiday: holidaysRows,
                     leaveS: leavesS,
                     leaveC: leavesC,
                     leaveE: leavesE
                 });
             }
         }
-    }, [weekData, approvedLeaves]);
+    }, [weekData, approvedLeaves, holidays]);
 
     const handleAddRow = () => {
         setProjectRows([...projectRows, { id: Date.now(), projectId: '', projectName: '', taskId: '', taskDesc: '', onsite: 'Offshore', billable: 'Billable', location: 'India', hours: Array(7).fill({ value: '', id: null }), comment: '' }]);
@@ -163,6 +170,12 @@ const WeeklyTimesheetGrid = ({ weekData, onBack, onSave, employeeId, approvedLea
         if (!date) return false;
         const day = date instanceof Date ? date.getDay() : new Date(date).getDay();
         return day === 0 || day === 6; // Sunday = 0, Saturday = 6
+    };
+
+    const isHolidayDay = (dayIdx) => {
+        if (!dates[dayIdx]) return false;
+        const ds = getLocalDateStr(dates[dayIdx]);
+        return holidays.some(h => h.holidayDate === ds);
     };
 
     const isApprovedLeaveDay = (dayIdx) => {
@@ -425,9 +438,9 @@ const WeeklyTimesheetGrid = ({ weekData, onBack, onSave, employeeId, approvedLea
                                             <input
                                                 type="text"
                                                 value={h.value}
-                                                disabled={weekend || readOnly || isApprovedLeaveDay(i)}
+                                                disabled={weekend || readOnly || isApprovedLeaveDay(i) || isHolidayDay(i)}
                                                 onChange={(e) => handleHourChange(index, i, e.target.value)}
-                                                className={`w-full p-2 text-[11px] text-center border border-transparent hover:border-slate-200 focus:border-indigo-500 rounded bg-transparent focus:bg-white outline-none font-bold ${weekend ? 'text-slate-400 cursor-not-allowed' : 'text-slate-700'}`}
+                                                className={`w-full p-2 text-[11px] text-center border border-transparent hover:border-slate-200 focus:border-indigo-500 rounded bg-transparent focus:bg-white outline-none font-bold ${weekend || isHolidayDay(i) ? 'text-slate-400 cursor-not-allowed' : 'text-slate-700'}`}
                                             />
                                         </td>
                                     );
@@ -481,7 +494,7 @@ const WeeklyTimesheetGrid = ({ weekData, onBack, onSave, employeeId, approvedLea
                                         <input
                                             type="text"
                                             value={h.value}
-                                            disabled={weekend || readOnly || isApprovedLeaveDay(i)}
+                                            disabled={weekend || readOnly || isApprovedLeaveDay(i) || isHolidayDay(i)}
                                             onChange={(e) => {
                                                 const val = e.target.value;
                                                 const numVal = parseFloat(val);
@@ -493,7 +506,7 @@ const WeeklyTimesheetGrid = ({ weekData, onBack, onSave, employeeId, approvedLea
                                                 updated.swipe[i] = { ...updated.swipe[i], value: val };
                                                 setTruTimeRows(updated);
                                             }}
-                                            className={`w-full h-full text-center outline-none bg-transparent font-bold ${weekend ? 'text-slate-400 cursor-not-allowed' : 'text-slate-400'}`}
+                                            className={`w-full h-full text-center outline-none bg-transparent font-bold ${weekend || isHolidayDay(i) ? 'text-slate-400 cursor-not-allowed' : 'text-slate-400'}`}
                                         />
                                     </td>
                                 );
@@ -506,18 +519,19 @@ const WeeklyTimesheetGrid = ({ weekData, onBack, onSave, employeeId, approvedLea
                         <tr className="text-[11px]">
                             <td colSpan="7" className="p-2 pl-10 text-slate-500 border-r border-slate-200 italic font-medium">Holiday (Public/National)</td>
                             {leaveRows.holiday.map((h, i) => {
+                                const isHoliday = isHolidayDay(i);
                                 return (
-                                    <td key={i} className={`p-0 border-r border-slate-100 bg-amber-50/10`}>
+                                    <td key={i} className={`p-0 border-r border-slate-100 ${isHoliday ? 'bg-amber-100/50' : 'bg-amber-50/10'}`}>
                                         <input
                                             type="text"
                                             value={h.value}
                                             disabled={true}
-                                            className={`w-full text-center h-full outline-none bg-transparent font-bold text-amber-600/50 cursor-not-allowed`}
+                                            className={`w-full text-center h-full outline-none bg-transparent font-bold ${isHoliday ? 'text-amber-700' : 'text-amber-600/50'} cursor-not-allowed`}
                                         />
                                     </td>
                                 );
                             })}
-                            <td className="text-center font-bold text-amber-600/50">{calculateRowTotal(leaveRows.holiday).toFixed(2)}</td>
+                            <td className="text-center font-bold text-amber-600">{calculateRowTotal(leaveRows.holiday).toFixed(2)}</td>
                             <td colSpan="2"></td>
                         </tr>
 

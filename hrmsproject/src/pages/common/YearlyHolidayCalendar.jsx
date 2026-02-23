@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { ChevronLeft, ChevronRight, X, Calendar as CalendarIcon, List as ListIcon, Search, Save, Trash2, MapPin } from "lucide-react";
+import { ChevronLeft, ChevronRight, X, Calendar as CalendarIcon, List as ListIcon, Search, Save, Trash2, MapPin, CheckCircle2 } from "lucide-react";
+import { toast } from 'react-toastify';
 
 export default function YearlyHolidayCalendar({ isOpen, onClose }) {
     const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
@@ -13,6 +14,8 @@ export default function YearlyHolidayCalendar({ isOpen, onClose }) {
     const [holidayName, setHolidayName] = useState("");
     const [showInput, setShowInput] = useState(false);
     const [editingHolidayId, setEditingHolidayId] = useState(null);
+    const [isSaving, setIsSaving] = useState(false);
+    const [saveSuccess, setSaveSuccess] = useState(false);
 
     const user = JSON.parse(localStorage.getItem("user")) || {};
     const isAdmin = user.role === "ADMIN";
@@ -42,10 +45,10 @@ export default function YearlyHolidayCalendar({ isOpen, onClose }) {
 
     const handleDateClick = (dateStr) => {
         if (!isAdmin) return;
-        const existing = holidays.find(h => h.date === dateStr);
+        const existing = holidays.find(h => h.holidayDate === dateStr);
         setSelectedDate(dateStr);
         if (existing) {
-            setHolidayName(existing.name);
+            setHolidayName(existing.holidayName);
             setEditingHolidayId(existing.id);
         } else {
             setHolidayName("");
@@ -55,13 +58,15 @@ export default function YearlyHolidayCalendar({ isOpen, onClose }) {
     };
 
     const handleSaveHoliday = async () => {
-        if (!holidayName.trim()) return;
-        const payload = { name: holidayName, date: selectedDate };
+        if (!holidayName.trim() || isSaving) return;
+
+        setIsSaving(true);
+        setSaveSuccess(false);
+
+        const payload = { holidayName: holidayName, holidayDate: selectedDate };
         try {
             const url = editingHolidayId ? `http://localhost:8080/api/holidays/${editingHolidayId}` : "http://localhost:8080/api/holidays";
             const method = editingHolidayId ? "PUT" : "POST";
-
-            console.log(`Sending ${method} request to ${url} with payload:`, payload);
 
             const res = await fetch(url, {
                 method,
@@ -70,19 +75,35 @@ export default function YearlyHolidayCalendar({ isOpen, onClose }) {
                 body: JSON.stringify(payload)
             });
 
-            console.log("Response status:", res.status);
-            const data = await res.json();
-            console.log("Response data:", data);
+            const text = await res.text();
+            let data;
+            try {
+                data = JSON.parse(text);
+            } catch (err) {
+                console.error("Non-JSON response:", text);
+                toast.error("An internal error occurred. Please check console.");
+                setIsSaving(false);
+                return;
+            }
 
             if (res.ok && data.status === "success") {
-                setShowInput(false);
-                fetchHolidays();
+                setSaveSuccess(true);
+                toast.success(editingHolidayId ? "Registry Updated" : "Holiday Committed");
+
+                setTimeout(() => {
+                    setShowInput(false);
+                    fetchHolidays();
+                    setSaveSuccess(false);
+                    setIsSaving(false);
+                }, 1000);
             } else {
-                alert(data.message || "Failed to save holiday. Status: " + res.status);
+                toast.error(data.message || "Execution Failed");
+                setIsSaving(false);
             }
         } catch (error) {
             console.error("Error saving holiday:", error);
-            alert("Network error while saving holiday");
+            toast.error("Network link failure");
+            setIsSaving(false);
         }
     };
 
@@ -114,8 +135,8 @@ export default function YearlyHolidayCalendar({ isOpen, onClose }) {
 
     const todayStr = new Date().toISOString().split('T')[0];
     const upcomingHoliday = [...holidays]
-        .filter(h => h.date >= todayStr)
-        .sort((a, b) => a.date.localeCompare(b.date))[0];
+        .filter(h => h.holidayDate >= todayStr)
+        .sort((a, b) => a.holidayDate.localeCompare(b.holidayDate))[0];
 
     return (
         <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-900/40 backdrop-blur-md p-4 lg:p-10 animate-in fade-in duration-300">
@@ -128,7 +149,7 @@ export default function YearlyHolidayCalendar({ isOpen, onClose }) {
                         <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-10">Corporate Registry</p>
 
                         {/* Illustration Placeholder */}
-                        <div className="relative w-full aspect-square bg-white/40 rounded-[32px] border border-white/60 mb-10 flex items-center justify-center p-8">
+                        {/* <div className="relative w-full aspect-square bg-white/40 rounded-[32px] border border-white/60 mb-10 flex items-center justify-center p-8">
                             <div className="absolute inset-0 bg-gradient-to-br from-blue-50/50 to-indigo-50/50 rounded-[32px]" />
                             <div className="relative z-10 flex flex-col items-center gap-6">
                                 <div className="w-24 h-24 bg-indigo-100 rounded-full flex items-center justify-center">
@@ -141,7 +162,7 @@ export default function YearlyHolidayCalendar({ isOpen, onClose }) {
                                     <div className="w-16 h-2 bg-indigo-100 rounded-full" />
                                 </div>
                             </div>
-                        </div>
+                        </div> */}
 
                         {/* Status Cards */}
                         <div className="space-y-6 w-full">
@@ -157,9 +178,9 @@ export default function YearlyHolidayCalendar({ isOpen, onClose }) {
                                         <div className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
                                         Upcoming Holiday
                                     </p>
-                                    <p className="text-lg font-black text-white tracking-tight">{upcomingHoliday.name}</p>
+                                    <p className="text-lg font-black text-white tracking-tight">{upcomingHoliday.holidayName}</p>
                                     <p className="text-xs font-bold text-white/60 mt-2 uppercase tracking-widest">
-                                        {new Date(upcomingHoliday.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long' })}
+                                        {new Date(upcomingHoliday.holidayDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long' })}
                                     </p>
                                 </div>
                             )}
@@ -260,7 +281,7 @@ export default function YearlyHolidayCalendar({ isOpen, onClose }) {
                                         for (let i = 0; i < firstDay; i++) days.push(<div key={`pad-${i}`} />);
                                         for (let d = 1; d <= daysInMonth; d++) {
                                             const dStr = `${selectedYear}-${String(monthIdx + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-                                            const hol = holidays.find(h => h.date === dStr);
+                                            const hol = holidays.find(h => h.holidayDate === dStr);
                                             const isToday = dStr === todayStr;
                                             days.push(
                                                 <div
@@ -275,7 +296,7 @@ export default function YearlyHolidayCalendar({ isOpen, onClose }) {
                                                     {d}
                                                     {hol && (
                                                         <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-3 py-1.5 bg-slate-800 text-white text-[9px] font-black uppercase tracking-widest rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-30 pointer-events-none shadow-xl border border-white/10">
-                                                            {hol.name}
+                                                            {hol.holidayName}
                                                         </div>
                                                     )}
                                                 </div>
@@ -320,19 +341,19 @@ export default function YearlyHolidayCalendar({ isOpen, onClose }) {
                                             ) : holidays.length === 0 ? (
                                                 <tr><td colSpan="3" className="p-20 text-center text-xs font-black text-slate-300 uppercase tracking-widest">No holidays scheduled for this period</td></tr>
                                             ) : (
-                                                [...holidays].sort((a, b) => a.date.localeCompare(b.date)).map(h => (
-                                                    <tr key={h.id} onClick={() => handleDateClick(h.date)} className="group hover:bg-white transition-all cursor-pointer">
+                                                [...holidays].sort((a, b) => a.holidayDate.localeCompare(b.holidayDate)).map(h => (
+                                                    <tr key={h.id} onClick={() => handleDateClick(h.holidayDate)} className="group hover:bg-white transition-all cursor-pointer">
                                                         <td className="p-6 pl-10">
                                                             <div className="flex items-center gap-3">
                                                                 <div className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
-                                                                <span className="text-sm font-bold text-slate-700 tracking-tight group-hover:text-indigo-500 transition-colors">{h.name}</span>
+                                                                <span className="text-sm font-bold text-slate-700 tracking-tight group-hover:text-indigo-500 transition-colors">{h.holidayName}</span>
                                                             </div>
                                                         </td>
                                                         <td className="p-6">
-                                                            <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">{new Date(h.date).toLocaleDateString('en-GB', { weekday: 'long' })}</span>
+                                                            <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">{new Date(h.holidayDate).toLocaleDateString('en-GB', { weekday: 'long' })}</span>
                                                         </td>
                                                         <td className="p-6 pr-10 text-right">
-                                                            <span className="text-sm font-black text-slate-800 tracking-tighter">{new Date(h.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long' })}</span>
+                                                            <span className="text-sm font-black text-slate-800 tracking-tighter">{new Date(h.holidayDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long' })}</span>
                                                         </td>
                                                     </tr>
                                                 ))
@@ -382,11 +403,32 @@ export default function YearlyHolidayCalendar({ isOpen, onClose }) {
                                         </button>
                                     )}
                                     <button
+                                        disabled={isSaving}
                                         onClick={handleSaveHoliday}
-                                        className="flex-1 h-14 bg-indigo-500 text-white font-black text-xs uppercase tracking-widest rounded-[20px] shadow-lg shadow-indigo-100 hover:bg-indigo-600 hover:-translate-y-0.5 active:translate-y-0 transition-all flex items-center justify-center gap-3"
+                                        className={`flex-1 h-14 font-black text-xs uppercase tracking-widest rounded-[20px] shadow-lg transition-all flex items-center justify-center gap-3 relative overflow-hidden active:scale-95
+                                            ${saveSuccess
+                                                ? 'bg-emerald-500 text-white shadow-emerald-200'
+                                                : isSaving
+                                                    ? 'bg-slate-300 text-slate-500 cursor-not-allowed shadow-none'
+                                                    : 'bg-indigo-500 text-white shadow-indigo-100 hover:bg-indigo-600 hover:-translate-y-0.5'
+                                            }`}
                                     >
-                                        <Save size={18} strokeWidth={2.5} />
-                                        {editingHolidayId ? "Update Registry" : "Commit Holiday"}
+                                        {isSaving && !saveSuccess ? (
+                                            <>
+                                                <div className="w-5 h-5 border-2 border-slate-500 border-t-transparent rounded-full animate-spin" />
+                                                Processing...
+                                            </>
+                                        ) : saveSuccess ? (
+                                            <>
+                                                <CheckCircle2 size={18} strokeWidth={3} className="animate-bounce" />
+                                                Saved Successfully
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Save size={18} strokeWidth={2.5} />
+                                                {editingHolidayId ? "Update Registry" : "Commit Holiday"}
+                                            </>
+                                        )}
                                     </button>
                                 </div>
                             </div>

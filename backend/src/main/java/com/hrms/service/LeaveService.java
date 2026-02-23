@@ -52,6 +52,9 @@ public class LeaveService {
     @Autowired
     private com.hrms.repository.EmployeeReportingRepository employeeReportingRepository;
 
+    @Autowired
+    private com.hrms.repository.HolidayRepository holidayRepository;
+
     // Fetch all leaves for team members of a manager
     public List<Leave> getTeamLeavesByManagerId(Long managerId) {
         List<com.hrms.model.EmployeeReporting> team = employeeReportingRepository
@@ -358,10 +361,26 @@ public class LeaveService {
     private int calculateLeaveDays(LocalDate startDate, LocalDate endDate) {
         if (startDate == null || endDate == null)
             return 0;
+        
+        // Fetch all holidays for the years involved (usually just one year, maybe two)
+        int startYear = startDate.getYear();
+        int endYear = endDate.getYear();
+        
+        List<String> holidayDates = holidayRepository.findAll().stream()
+                .map(com.hrms.model.Holiday::getHolidayDate)
+                .filter(java.util.Objects::nonNull)
+                .map(String::trim)
+                .collect(Collectors.toList());
+
         int days = 0;
         for (LocalDate date = startDate; !date.isAfter(endDate); date = date.plusDays(1)) {
-            if (date.getDayOfWeek() != java.time.DayOfWeek.SATURDAY
-                    && date.getDayOfWeek() != java.time.DayOfWeek.SUNDAY) {
+            boolean isWeekend = date.getDayOfWeek() == java.time.DayOfWeek.SATURDAY
+                    || date.getDayOfWeek() == java.time.DayOfWeek.SUNDAY;
+            
+            String dateStr = date.toString(); // YYYY-MM-DD
+            boolean isHoliday = holidayDates.contains(dateStr);
+            
+            if (!isWeekend && !isHoliday) {
                 days++;
             }
         }

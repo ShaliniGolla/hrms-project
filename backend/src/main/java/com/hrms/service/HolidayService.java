@@ -29,8 +29,11 @@ public class HolidayService {
         Holiday holiday = holidayRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Holiday not found with id: " + id));
 
-        holiday.setName(holidayDetails.getName());
-        holiday.setDate(holidayDetails.getDate());
+        holiday.setHolidayName(holidayDetails.getHolidayName());
+        holiday.setHolidayDate(holidayDetails.getHolidayDate());
+        holiday.setHolidayType(holidayDetails.getHolidayType());
+        holiday.setDescription(holidayDetails.getDescription());
+        holiday.setYear(holidayDetails.getYear());
 
         return holidayRepository.save(holiday);
     }

@@ -13,6 +13,8 @@ import java.util.List;
 
 @Repository
 public interface HolidayRepository extends JpaRepository<Holiday, Long> {
-    @Query("SELECT h FROM Holiday h WHERE h.date LIKE :yearPattern")
+    @Query("SELECT h FROM Holiday h WHERE h.holidayDate LIKE :yearPattern")
     List<Holiday> findByYear(@Param("yearPattern") String yearPattern);
+
+    List<Holiday> findByHolidayDateBetween(String start, String end);
 }

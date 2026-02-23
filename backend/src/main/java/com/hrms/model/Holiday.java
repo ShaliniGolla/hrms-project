@@ -1,10 +1,6 @@
 package com.hrms.model;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -19,6 +15,38 @@ public class Holiday {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String name;
-    private String date; // Format: YYYY-MM-DD
+    @Column(name = "holiday_name")
+    private String holidayName;
+
+    @Column(name = "holiday_date")
+    private String holidayDate; // Format: YYYY-MM-DD
+
+    @Column(name = "description")
+    private String description;
+
+    @Column(name = "holiday_type")
+    private String holidayType;
+
+    @Column(name = "\"year\"")
+    private Integer year;
+
+    @PrePersist
+    @PreUpdate
+    public void ensureDefaults() {
+        if (holidayDate != null && holidayDate.length() >= 4) {
+            try {
+                if (this.year == null) {
+                    this.year = Integer.parseInt(holidayDate.substring(0, 4));
+                }
+            } catch (NumberFormatException e) {
+                // Ignore
+            }
+        }
+        if (this.holidayType == null) {
+            this.holidayType = "General";
+        }
+        if (this.description == null) {
+            this.description = holidayName;
+        }
+    }
 }
