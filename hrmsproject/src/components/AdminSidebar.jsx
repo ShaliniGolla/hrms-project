@@ -108,7 +108,7 @@ export default function AdminSidebar({ activeTab, setActiveTab, onLogout }) {
         </div>
       )}
 
-      <aside className="hidden md:flex md:w-[277px] w-full bg-brand-blue text-white flex-col flex-shrink-0 shadow-xl z-20">
+      <aside className="hidden md:flex md:w-[277px] w-full bg-brand-blue text-white flex-col flex-shrink-0 shadow-xl z-20 h-screen sticky top-0 overflow-hidden">
         <div className="p-6 text-center border-b border-white/5 flex flex-col items-center">
           <div className="flex flex-col items-center w-full">
             <img src={Logo} alt="ORYFOLKS Logo" className="h-11 mb-2 object-contain" />
@@ -123,7 +123,7 @@ export default function AdminSidebar({ activeTab, setActiveTab, onLogout }) {
           </div>
         </div>
 
-        <nav className="flex-1 px-4 py-4 space-y-1">
+        <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto">
           {navLinks.map(({ id, label, Icon }) => (
             <div
               key={id}

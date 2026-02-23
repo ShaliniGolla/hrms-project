@@ -254,6 +254,32 @@ export default function AdminTimesheets() {
             />
 
             <main className="flex-1 flex flex-col overflow-hidden">
+                {/* Standardized Header */}
+                <header className="bg-white px-8 py-4 flex items-center justify-between shadow-sm z-10 border-b border-brand-blue/5">
+                    <div className="flex items-center gap-6">
+                        <div className="w-11 h-11 bg-brand-blue/5 rounded-xl flex items-center justify-center border border-brand-blue/10 shadow-sm overflow-hidden text-sm font-black text-brand-blue">
+                            {user.photoPath ? (
+                                <img src={user.photoPath} alt="Profile" className="w-full h-full object-cover" />
+                            ) : (
+                                (user.firstName?.[0] || user.fullName?.[0]) || "A"
+                            )}
+                        </div>
+                        <div>
+                            <h1 className="text-xl font-black text-brand-blue tracking-tight">Enterprise Timesheets</h1>
+                            <p className="text-[10px] text-brand-blue/40 uppercase font-black tracking-[0.2em] mt-0.5">
+                                Personnel Resource Audit
+                            </p>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <div className="flex bg-bg-slate/50 p-1 rounded-xl border border-brand-blue/5">
+                            <div className="px-4 py-1.5 flex items-center gap-2">
+                                <Clock size={14} className="text-brand-blue/40" />
+                                <span className="text-[10px] font-black text-brand-blue uppercase tracking-widest">{groupedWeeks.length} Weeks Recorded</span>
+                            </div>
+                        </div>
+                    </div>
+                </header>
 
                 <div className="flex-1 p-4 md:p-10 overflow-y-auto">
                     <div className="max-w-[1200px] mx-auto animate-in fade-in duration-500">
@@ -301,14 +327,14 @@ export default function AdminTimesheets() {
                                     ) : (
                                         filteredWeeks.map((week, wIdx) => (
                                             <div key={wIdx} className="bg-white rounded-[32px] shadow-xl border border-brand-blue/5 overflow-hidden">
-                                                <div className="bg-gradient-to-r from-brand-blue to-indigo-900 p-3 px-6 flex items-center justify-between">
+                                                <div className="bg-white p-3 px-6 flex items-center justify-between border-b border-brand-blue/5">
                                                     <div>
-                                                        <h3 className="text-white font-black text-sm tracking-tight uppercase">Week of {week.startDateStr}</h3>
-                                                        <p className="text-white/40 text-[9px] font-bold uppercase tracking-widest leading-none">{week.startDateStr} — {week.endDateStr}</p>
+                                                        <h3 className="text-brand-blue font-black text-sm tracking-tight uppercase">Week of {week.startDateStr}</h3>
+                                                        <p className="text-brand-blue/40 text-[9px] font-bold uppercase tracking-widest leading-none">{week.startDateStr} — {week.endDateStr}</p>
                                                     </div>
-                                                    <div className="bg-white/10 px-3 py-1 rounded-lg border border-white/10">
-                                                        <span className="text-white font-black text-xs">{week.filteredEmployees.length}</span>
-                                                        <span className="text-white/40 text-[8px] font-bold uppercase tracking-widest ml-2">Resources Recorded</span>
+                                                    <div className="bg-brand-blue/5 px-3 py-1 rounded-lg border border-brand-blue/10">
+                                                        <span className="text-brand-blue font-black text-xs">{week.filteredEmployees.length}</span>
+                                                        <span className="text-brand-blue/40 text-[8px] font-bold uppercase tracking-widest ml-2">Resources Recorded</span>
                                                     </div>
                                                 </div>
 
@@ -339,7 +365,7 @@ export default function AdminTimesheets() {
                                                                     <h4 className="font-black text-sm text-brand-blue uppercase tracking-tight">{emp.employeeName}</h4>
                                                                     <span className="text-[10px] font-bold text-brand-blue/20 uppercase tracking-widest">ID: {(() => {
                                                                         const profile = employees.find(e => e.id === emp.employeeId);
-                                                                        return profile?.officeId || emp.employeeId;
+                                                                        return profile?.oryfolksId || emp.employeeId;
                                                                     })()}</span>
                                                                 </div>
                                                                 <div className="flex items-center gap-3 mt-1">

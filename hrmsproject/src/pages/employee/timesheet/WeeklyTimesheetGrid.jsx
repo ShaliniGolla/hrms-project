@@ -9,7 +9,7 @@ const WeeklyTimesheetGrid = ({ weekData, onBack, onSave, employeeId, approvedLea
 
     // Project rows
     const [projectRows, setProjectRows] = useState([
-        { id: Date.now(), projectId: '', projectName: '', taskId: '', taskDesc: '', onsite: 'Offshore', billable: 'Billable', location: 'DFLT', hours: Array(7).fill({ value: '', id: null }), comment: '' }
+        { id: Date.now(), projectId: '', projectName: '', taskId: '', taskDesc: '', onsite: 'Offshore', billable: 'Billable', location: 'India', hours: Array(7).fill({ value: '', id: null }), comment: '' }
     ]);
 
     // TruTime rows (Swipe)
@@ -67,7 +67,7 @@ const WeeklyTimesheetGrid = ({ weekData, onBack, onSave, employeeId, approvedLea
                                     taskDesc: entry.taskDescription || '',
                                     onsite: entry.onsiteOffshore || 'Offshore',
                                     billable: entry.billable ? 'Billable' : 'Non-Billable',
-                                    location: entry.billingLocation || 'DFLT',
+                                    location: entry.billingLocation || 'India',
                                     hours: Array(7).fill(null).map(() => ({ value: '', id: null })),
                                     comment: entry.notes || ''
                                 };
@@ -122,7 +122,7 @@ const WeeklyTimesheetGrid = ({ weekData, onBack, onSave, employeeId, approvedLea
     }, [weekData, approvedLeaves]);
 
     const handleAddRow = () => {
-        setProjectRows([...projectRows, { id: Date.now(), projectId: '', projectName: '', taskId: '', taskDesc: '', onsite: 'Offshore', billable: 'Billable', location: 'DFLT', hours: Array(7).fill({ value: '', id: null }), comment: '' }]);
+        setProjectRows([...projectRows, { id: Date.now(), projectId: '', projectName: '', taskId: '', taskDesc: '', onsite: 'Offshore', billable: 'Billable', location: 'India', hours: Array(7).fill({ value: '', id: null }), comment: '' }]);
     };
 
     const handleRowChange = (rowIndex, field, value) => {
@@ -356,26 +356,26 @@ const WeeklyTimesheetGrid = ({ weekData, onBack, onSave, employeeId, approvedLea
                 <table className="w-full border-collapse">
                     <thead className="sticky top-0 z-20">
                         <tr className="bg-slate-800 text-white text-[10px] font-black uppercase tracking-wider">
-                            <th className="p-2.5 border-r border-slate-700 text-left min-w-[80px]">Project ID</th>
-                            <th className="p-2.5 border-r border-slate-700 text-left min-w-[120px]">Project Name</th>
-                            <th className="p-2.5 border-r border-slate-700 text-left min-w-[80px]">Task ID</th>
-                            <th className="p-2.5 border-r border-slate-700 text-left min-w-[120px]">Description</th>
-                            <th className="p-2.5 border-r border-slate-700 text-center">On/Off</th>
-                            <th className="p-2.5 border-r border-slate-700 text-center">Billable</th>
-                            <th className="p-2.5 border-r border-slate-700 text-center">Loc</th>
+                            <th className="p-1 border-r border-slate-700 text-left min-w-[70px]">Project ID</th>
+                            <th className="p-1 border-r border-slate-700 text-left min-w-[100px]">Project Name</th>
+                            <th className="p-1 border-r border-slate-700 text-left min-w-[70px]">Task ID</th>
+                            <th className="p-1 border-r border-slate-700 text-left min-w-[100px]">Description</th>
+                            <th className="p-1 border-r border-slate-700 text-center min-w-[70px]">On/Off</th>
+                            <th className="p-1 border-r border-slate-700 text-center min-w-[80px]">Billable</th>
+                            <th className="p-1 border-r border-slate-700 text-center min-w-[110px]">Location</th>
                             {dates.map((d, i) => {
                                 const header = formatDateHeader(d);
                                 const weekend = isWeekend(d);
                                 return (
-                                    <th key={i} className={`p-2 border-r border-slate-700 text-center min-w-[50px] ${weekend ? 'bg-slate-900/60' : ''}`}>
+                                    <th key={i} className={`p-2 border-r border-slate-700 text-center min-w-[45px] ${weekend ? 'bg-slate-900/60' : ''}`}>
                                         <div className="font-bold">{header.day}</div>
                                         <div className="opacity-60 text-[8px]">{header.name}</div>
                                     </th>
                                 );
                             })}
-                            <th className="p-2 border-r border-slate-700 text-center">Total</th>
-                            <th className="p-2 border-r border-slate-700 text-center min-w-[120px]">Comment</th>
-                            <th className="p-2 text-center">Action</th>
+                            <th className="p-1 border-r border-slate-700 text-center min-w-[50px]">Total</th>
+                            <th className="p-1 border-r border-slate-700 text-center min-w-[90px]">Comment</th>
+                            <th className="p-1 text-center min-w-[45px]">Action</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
@@ -407,7 +407,16 @@ const WeeklyTimesheetGrid = ({ weekData, onBack, onSave, employeeId, approvedLea
                                     </select>
                                 </td>
                                 <td className="p-0.5 border-r border-slate-100">
-                                    <input type="text" value={row.location} onChange={(e) => handleRowChange(index, 'location', e.target.value)} className="w-full p-2 text-[11px] text-center bg-transparent outline-none" />
+                                    <select
+                                        value={row.location}
+                                        disabled={readOnly}
+                                        onChange={(e) => handleRowChange(index, 'location', e.target.value)}
+                                        className="w-full p-2 text-[11px] bg-transparent outline-none"
+                                    >
+                                        <option value="India">India</option>
+                                        <option value="Japan">Japan</option>
+                                        <option value="Singapore">Singapore</option>
+                                    </select>
                                 </td>
                                 {row.hours.map((h, i) => {
                                     const weekend = isWeekend(dates[i]);
@@ -541,18 +550,12 @@ const WeeklyTimesheetGrid = ({ weekData, onBack, onSave, employeeId, approvedLea
 
             {/* Footer Summary */}
             <div className="bg-slate-900 text-white p-2 border-t border-slate-800 shrink-0">
-                <div className="flex justify-between items-center max-w-4xl mx-auto">
-                    <div className="flex gap-8">
-                        <div className="text-center">
-                            <p className="text-[9px] uppercase font-black text-slate-500 tracking-wider">Grand Total</p>
-                            <p className={`text-xl font-black ${getGrandTotal() >= 40 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                                {getGrandTotal().toFixed(2)} / 40.00
-                            </p>
-                        </div>
-                        <div className="text-center border-l border-slate-800 pl-8">
-                            <p className="text-[9px] uppercase font-black text-slate-500 tracking-wider">Total Hours</p>
-                            <p className="text-xl font-black text-indigo-400">{getGrandTotal().toFixed(2)}</p>
-                        </div>
+                <div className="flex justify-end items-center max-w-6xl mx-auto px-8">
+                    <div className="text-right">
+                        <p className="text-[9px] uppercase font-black text-slate-500 tracking-wider">Total Hours</p>
+                        <p className={`text-xl font-black ${getGrandTotal() >= 40 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                            {getGrandTotal().toFixed(2)} / 40.00
+                        </p>
                     </div>
                 </div>
             </div>

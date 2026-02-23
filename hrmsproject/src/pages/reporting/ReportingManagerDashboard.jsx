@@ -4,6 +4,7 @@ import Sidebar from '../../components/Sidebar';
 import LeaveRequestPage from "../employee/LeaveRequestPage";
 import PersonalTimesheetContent from "../employee/PersonalTimesheetContent";
 import EmployeeOwnProfile from "../employee/EmployeeOwnProfile";
+import { getRmNavItems } from "../../utils/rmNav";
 
 const ReportingManagerDashboard = () => {
   const navigate = useNavigate();
@@ -264,54 +265,7 @@ const ReportingManagerDashboard = () => {
     return `${h12}:${m} ${ampm}`;
   };
 
-  // Add Team button to navItems
-  const navItems = [
-    {
-      tab: "dashboard",
-      label: "Dashboard",
-      icon: (
-        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <rect x="3" y="3" width="7" height="7"></rect>
-          <rect x="14" y="3" width="7" height="7"></rect>
-          <rect x="14" y="14" width="7" height="7"></rect>
-          <rect x="3" y="14" width="7" height="7"></rect>
-        </svg>
-      )
-    },
-    {
-      tab: "team",
-      label: "My Team",
-      icon: (
-        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-          <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z" />
-        </svg>
-      ),
-      to: "/reporting-team"
-    },
-    {
-      tab: "timesheet",
-      label: "Timesheet",
-      icon: (
-        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="12" cy="12" r="10"></circle>
-          <polyline points="12 6 12 12 16 14"></polyline>
-        </svg>
-      )
-    },
-    {
-      tab: "leave",
-      label: "Leave Request",
-      icon: (
-        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-          <polyline points="14 2 14 8 20 8"></polyline>
-          <line x1="16" y1="13" x2="8" y2="13"></line>
-          <line x1="16" y1="17" x2="8" y2="17"></line>
-          <polyline points="10 9 9 9 8 9"></polyline>
-        </svg>
-      )
-    }
-  ];
+  const navItems = getRmNavItems(activeTab);
 
   return (
     <div className="flex min-h-screen bg-bg-slate font-brand text-brand-blue">
@@ -327,7 +281,7 @@ const ReportingManagerDashboard = () => {
       <main className="flex-1 flex flex-col">
         {/* Conditional Header */}
         {activeTab === 'dashboard' ? (
-          <header className="bg-white px-8 py-6 flex items-center justify-between shadow-sm z-10 border-b border-brand-blue/5">
+          <header className="bg-white px-8 py-4 flex items-center justify-between shadow-sm z-10 border-b border-brand-blue/5">
             <div className="flex items-center gap-6">
               <div className="w-14 h-14 bg-brand-blue/5 rounded-2xl flex items-center justify-center border border-brand-blue/10 shadow-sm overflow-hidden">
                 {user.photoPath ? (
@@ -361,23 +315,22 @@ const ReportingManagerDashboard = () => {
             </div>
           </header>
         ) : (
-          <header className="bg-brand-blue text-white p-6 md:px-10 flex items-center justify-between shadow-lg z-10">
-            <div className="flex items-center gap-5">
-              <div className="w-16 h-16 bg-brand-yellow rounded-full flex items-center justify-center text-brand-blue shadow-inner border-2 border-white/20 overflow-hidden">
+          <header className="bg-white px-8 py-4 flex items-center justify-between shadow-sm z-10 border-b border-brand-blue/5">
+            <div className="flex items-center gap-6">
+              <div className="w-11 h-11 bg-brand-blue/5 rounded-xl flex items-center justify-center border border-brand-blue/10 shadow-sm overflow-hidden">
                 {user.photoPath ? (
                   <img src={user.photoPath} alt="Profile" className="w-full h-full object-cover" />
                 ) : (
-                  <svg className="w-9 h-9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                    <circle cx="12" cy="7" r="4"></circle>
+                  <svg className="w-7 h-7 text-brand-blue/20" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
                   </svg>
                 )}
               </div>
               <div>
-                <h1 className="text-xl font-bold tracking-tight">
+                <h1 className="text-xl font-black text-brand-blue tracking-tight">
                   {user.fullName || "Reporting Manager"}
                 </h1>
-                <p className="text-xs text-white/50 uppercase tracking-[0.2em] mt-1 font-bold">
+                <p className="text-[10px] text-brand-blue/40 uppercase font-black tracking-[0.2em] mt-0.5">
                   {activeTab === 'team' ? 'Team Leadership Hub' : activeTab === 'profile' ? 'Profile Management' : activeTab === 'timesheet' ? 'Resource Timesheets' : 'Leave Administration'}
                 </p>
               </div>
@@ -405,9 +358,10 @@ const ReportingManagerDashboard = () => {
                 <div className="mb-4 p-4 bg-red-50 border border-red-200 text-red-600 rounded-xl text-sm font-medium">
                   {error}
                 </div>
+
               )}
 
-              {/* Stats Grid */}
+              {/* Stats Grid  */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 {loading ? (
                   <div className="col-span-full text-center text-brand-blue/30 py-10 animate-pulse font-bold uppercase tracking-widest text-xs">Loading leave data...</div>
@@ -444,7 +398,7 @@ const ReportingManagerDashboard = () => {
                 )}
               </div>
 
-              {/* Time Sheet Table */}
+              {/* Time Sheet Table  */}
               <div className="bg-white rounded-2xl shadow-sm overflow-hidden border border-brand-blue/5 card-hover">
                 <div className="px-6 py-4 border-b border-brand-blue/5 bg-brand-blue">
                   <h2 className="text-xs font-bold text-white uppercase tracking-[0.2em]">Time sheet</h2>
@@ -501,7 +455,7 @@ const ReportingManagerDashboard = () => {
                 </div>
               </div>
 
-              {/* Recent Leave History Table */}
+              {/* Recent Leave History Table  */}
               <div className="bg-white rounded-2xl shadow-sm overflow-hidden border border-brand-blue/5 card-hover">
                 <div className="px-6 py-4 border-b border-brand-blue/5 bg-brand-blue">
                   <h2 className="text-xs font-bold text-white uppercase tracking-[0.2em]">Recent Leave History</h2>
@@ -572,9 +526,12 @@ const ReportingManagerDashboard = () => {
             </>
           )}
 
+
           {activeTab === 'timesheet' && (
             <PersonalTimesheetContent employeeId={employeeId} user={user} profileResolved={profileResolved} />
+
           )}
+
 
           {activeTab === 'leave' && (
             <LeaveRequestPage
@@ -582,12 +539,15 @@ const ReportingManagerDashboard = () => {
               leaveBalance={leaveBalance}
               onLeaveRequestSuccess={handleRefreshData}
             />
+
           )}
 
-          {/* Team tab handled by navItem onClick, no need for tab content here */}
+          {/* Team tab handled by navItem onClick, no need for tab content here  */}
+
 
           {activeTab === 'profile' && (
             <EmployeeOwnProfile hideSidebar={true} />
+
           )}
 
 

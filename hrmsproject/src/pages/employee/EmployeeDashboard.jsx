@@ -325,7 +325,7 @@ const EmployeeDashboard = () => {
 			<main className="flex-1 flex flex-col">
 				{/* Conditional Header */}
 				{activeTab === 'dashboard' ? (
-					<header className="bg-white px-8 py-6 flex items-center justify-between shadow-sm z-10 border-b border-brand-blue/5">
+					<header className="bg-white px-8 py-4 flex items-center justify-between shadow-sm z-10 border-b border-brand-blue/5">
 						<div className="flex items-center gap-6">
 							<div className="w-14 h-14 bg-brand-blue/5 rounded-2xl flex items-center justify-center border border-brand-blue/10 shadow-sm overflow-hidden">
 								{user.photoPath ? (
@@ -359,23 +359,22 @@ const EmployeeDashboard = () => {
 						</div>
 					</header>
 				) : (
-					<header className="bg-brand-blue text-white p-6 md:px-10 flex items-center justify-between shadow-lg z-10">
-						<div className="flex items-center gap-5">
-							<div className="w-16 h-16 bg-brand-yellow rounded-full flex items-center justify-center text-brand-blue shadow-inner border-2 border-white/20 overflow-hidden">
+					<header className="bg-white px-8 py-4 flex items-center justify-between shadow-sm z-10 border-b border-brand-blue/5">
+						<div className="flex items-center gap-6">
+							<div className="w-11 h-11 bg-brand-blue/5 rounded-xl flex items-center justify-center border border-brand-blue/10 shadow-sm overflow-hidden">
 								{user.photoPath ? (
 									<img src={user.photoPath} alt="Profile" className="w-full h-full object-cover" />
 								) : (
-									<svg className="w-9 h-9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-										<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-										<circle cx="12" cy="7" r="4"></circle>
+									<svg className="w-7 h-7 text-brand-blue/20" viewBox="0 0 24 24" fill="currentColor">
+										<path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
 									</svg>
 								)}
 							</div>
 							<div>
-								<h1 className="text-xl font-bold tracking-tight">
+								<h1 className="text-xl font-black text-brand-blue tracking-tight">
 									{user.fullName || "Employee Name"}
 								</h1>
-								<p className="text-xs text-white/50 uppercase tracking-[0.2em] mt-1 font-bold">
+								<p className="text-[10px] text-brand-blue/40 uppercase font-black tracking-[0.2em] mt-0.5">
 									{activeTab === 'timesheet' ? 'Timesheet Management' : activeTab === 'profile' ? 'Profile Management' : 'Leave Management System'}
 								</p>
 							</div>
@@ -403,9 +402,10 @@ const EmployeeDashboard = () => {
 								<div className="mb-4 p-4 bg-red-50 border border-red-200 text-red-600 rounded-xl text-sm font-medium">
 									{error}
 								</div>
+
 							)}
 
-							{/* Stats Grid */}
+							{/* Stats Gri d */}
 							<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
 								{loading ? (
 									<div className="col-span-full text-center text-brand-blue/30 py-10 animate-pulse font-bold uppercase tracking-widest text-xs">Loading leave data...</div>
@@ -442,7 +442,7 @@ const EmployeeDashboard = () => {
 								)}
 							</div>
 
-							{/* Time Sheet Table */}
+							{/* Time Sheet Tabl e */}
 							<div className="bg-white rounded-2xl shadow-sm overflow-hidden border border-brand-blue/5 card-hover">
 								<div className="px-6 py-4 border-b border-brand-blue/5 bg-brand-blue">
 									<h2 className="text-xs font-bold text-white uppercase tracking-[0.2em]">Time sheet</h2>
@@ -499,7 +499,7 @@ const EmployeeDashboard = () => {
 								</div>
 							</div>
 
-							{/* Recent Leave History Table */}
+							{/* Recent Leave History Tabl e */}
 							<div className="bg-white rounded-2xl shadow-sm overflow-hidden border border-brand-blue/5 card-hover">
 								<div className="px-6 py-4 border-b border-brand-blue/5 bg-brand-blue">
 									<h2 className="text-xs font-bold text-white uppercase tracking-[0.2em]">Recent Leave History</h2>
@@ -570,9 +570,12 @@ const EmployeeDashboard = () => {
 						</>
 					)}
 
+
 					{activeTab === 'timesheet' && (
 						<PersonalTimesheetContent employeeId={employeeId} user={user} />
+
 					)}
+
 
 					{activeTab === 'leave' && (
 						<LeaveRequestPage
@@ -580,10 +583,13 @@ const EmployeeDashboard = () => {
 							leaveBalance={leaveBalance}
 							onLeaveRequestSuccess={handleRefreshData}
 						/>
+
 					)}
+
 
 					{activeTab === 'profile' && (
 						<EmployeeOwnProfile hideSidebar={true} />
+
 					)}
 
 

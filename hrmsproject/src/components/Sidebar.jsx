@@ -32,23 +32,32 @@ const Sidebar = ({ activeTab, setActiveTab, handleLogout, navItems }) => {
 	return (
 		<aside className="w-64 bg-brand-blue text-white flex flex-col hidden md:flex h-screen sticky top-0 shadow-xl overflow-hidden">
 
-			   {/* Logo Section */}
-			   <div className="p-8 border-b border-white/5 flex flex-col items-center">
-				   <img src={Logo} alt="ORYFOLKS Logo" className="h-12 mb-2 object-contain" />
-			   </div>
+			{/* Logo Section */}
+			<div className="p-4 border-b border-white/5 flex flex-col items-center">
+				<img src={Logo} alt="ORYFOLKS Logo" className="h-12 mb-2 object-contain" />
+			</div>
 
 			{/* Navigation */}
-			<nav className="flex-1 px-4 py-8 space-y-2">
-				{navItems.map((item) => (
-					<NavButton
-						key={item.tab}
-						tab={item.tab}
-						label={item.label}
-						icon={item.icon}
-						onClick={item.onClick}
-						to={item.to}
-					/>
-				))}
+			<nav className="flex-1 px-4 py-4 space-y-2 overflow-y-auto scrollbar-hide">
+				{navItems.map((item, index) => {
+					if (item.type === 'heading') {
+						return (
+							<div key={`heading-${index}`} className="px-4 pt-4 pb-2 text-[10px] font-black text-white/30 uppercase tracking-[0.2em]">
+								{item.label}
+							</div>
+						);
+					}
+					return (
+						<NavButton
+							key={item.tab || index}
+							tab={item.tab}
+							label={item.label}
+							icon={item.icon}
+							onClick={item.onClick}
+							to={item.to}
+						/>
+					);
+				})}
 			</nav>
 
 			{/* Logout Button */}

@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../../components/Sidebar";
+import { getHrNavItems } from "../../utils/hrNav";
 
 export default function HrManagerLeaves() {
     const [activeTab, setActiveTab] = useState("leaves");
@@ -16,23 +17,32 @@ export default function HrManagerLeaves() {
     useEffect(() => {
         const userData = JSON.parse(localStorage.getItem("user")) || {};
         setUser(userData);
-        fetchData();
-        fetchEmployees();
+        loadAllData();
     }, []);
+
+    const loadAllData = async () => {
+        setLoading(true);
+        const emps = await fetchEmployees();
+        await fetchData(emps);
+        setLoading(false);
+    };
 
     const fetchEmployees = async () => {
         try {
             const res = await fetch("http://localhost:8080/api/employees", { credentials: "include" });
             const data = await res.json();
-            setEmployees(Array.isArray(data.data) ? data.data : []);
+            const emps = Array.isArray(data.data) ? data.data : [];
+            setEmployees(emps);
+            return emps;
         } catch (error) {
             console.error("Error fetching employees:", error);
+            return [];
         }
     };
 
-    const fetchData = async () => {
+    const fetchData = async (empsList) => {
         try {
-            setLoading(true);
+            const currentEmps = empsList || employees;
             const token = localStorage.getItem("token");
             const res = await fetch("http://localhost:8080/api/leaves", {
                 headers: {
@@ -45,8 +55,14 @@ export default function HrManagerLeaves() {
                 const json = await res.json();
                 let allLeaves = json.data || json || [];
 
+                // Filter out HR leaves immediately
+                const filteredLeaves = allLeaves.filter(lv => {
+                    const emp = currentEmps.find(e => e.id === lv.employeeId || e.fullName === lv.employeeName);
+                    return emp?.role !== "HR";
+                });
+
                 // Sort: pending on top, then by date desc
-                allLeaves.sort((a, b) => {
+                filteredLeaves.sort((a, b) => {
                     if (a.status === 'PENDING' && b.status !== 'PENDING') return -1;
                     if (a.status !== 'PENDING' && b.status === 'PENDING') return 1;
                     const dateA = new Date(a.startDate);
@@ -54,12 +70,10 @@ export default function HrManagerLeaves() {
                     return dateB - dateA;
                 });
 
-                setLeaves(allLeaves);
+                setLeaves(filteredLeaves);
             }
         } catch (err) {
             console.error("Error fetching data", err);
-        } finally {
-            setLoading(false);
         }
     };
 
@@ -135,82 +149,7 @@ export default function HrManagerLeaves() {
         return days;
     };
 
-    const navItems = [
-        {
-            tab: "dashboard",
-            label: "Dashboard",
-            icon: (
-                <svg
-                    className="w-5 h-5"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                >
-                    <rect x="3" y="3" width="7" height="7"></rect>
-                    <rect x="14" y="3" width="7" height="7"></rect>
-                    <rect x="14" y="14" width="7" height="7"></rect>
-                    <rect x="3" y="14" width="7" height="7"></rect>
-                </svg>
-            ),
-            to: "/hr/actions",
-        },
-        {
-            tab: "candidates",
-            label: "Candidates",
-            icon: (
-                <svg
-                    className="w-5 h-5"
-                    viewBox="0 0 24 24"
-                    fill="currentColor"
-                >
-                    <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z" />
-                </svg>
-            ),
-            to: "/hr/actions/candidates",
-        },
-        {
-            tab: "managers",
-            label: "Reporting Managers",
-            icon: (
-                <svg
-                    className="w-5 h-5"
-                    viewBox="0 0 24 24"
-                    fill="currentColor"
-                >
-                    <path d="M9 7a4 4 0 118 0 4 4 0 01-8 0zM3 20a6 6 0 0112 0v1H3v-1zM17 13a4 4 0 110 8" />
-                </svg>
-            ),
-            to: "/hr/actions/reporting-managers",
-        },
-        {
-            tab: "leaves",
-            label: "Leaves",
-            icon: (
-                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                    <polyline points="14 2 14 8 20 8"></polyline>
-                    <line x1="16" y1="13" x2="8" y2="13"></line>
-                    <line x1="16" y1="17" x2="8" y2="17"></line>
-                    <polyline points="10 9 9 9 8 9"></polyline>
-                </svg>
-            ),
-            to: "/hr/actions/leaves"
-        },
-        {
-            tab: "timesheet",
-            label: "Timesheet",
-            icon: (
-                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <polyline points="12 6 12 12 16 14"></polyline>
-                </svg>
-            ),
-            to: "/hr/actions/timesheet"
-        },
-    ];
+    const navItems = getHrNavItems();
 
     return (
         <div className="flex h-screen bg-bg-slate font-brand text-brand-blue">
@@ -222,9 +161,9 @@ export default function HrManagerLeaves() {
             />
 
             <main className="flex-1 flex flex-col overflow-hidden">
-                <header className="bg-white px-8 py-6 flex items-center justify-between shadow-sm z-10 border-b border-brand-blue/5">
+                <header className="bg-white px-8 py-4 flex items-center justify-between shadow-sm z-10 border-b border-brand-blue/5">
                     <div className="flex items-center gap-6">
-                        <div className="w-14 h-14 bg-brand-blue/5 rounded-2xl flex items-center justify-center border border-brand-blue/10 shadow-sm overflow-hidden">
+                        <div className="w-11 h-11 bg-brand-blue/5 rounded-xl flex items-center justify-center border border-brand-blue/10 shadow-sm overflow-hidden">
                             <svg
                                 className="w-7 h-7 text-brand-blue/20"
                                 viewBox="0 0 24 24"
@@ -234,20 +173,31 @@ export default function HrManagerLeaves() {
                             </svg>
                         </div>
                         <div>
-                            <h1 className="text-2xl font-black text-brand-blue tracking-tight">
+                            <h1 className="text-xl font-black text-brand-blue tracking-tight">
                                 Employee Leaves
                             </h1>
                             <p className="text-[10px] text-brand-blue/40 uppercase font-black tracking-[0.2em] mt-0.5">
-                                {user.designation || "Human Resources"}
+                                {user.designation || "Human Resources Operations"}
                             </p>
                         </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <button
+                            onClick={() => navigate("/employee/profile")}
+                            className="px-6 py-2 bg-brand-yellow text-brand-blue font-black rounded-xl text-[11px] uppercase tracking-widest shadow-lg shadow-brand-yellow/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-2"
+                        >
+                            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="12" cy="7" r="4"></circle>
+                            </svg>
+                            VIEW PROFILE
+                        </button>
                     </div>
                 </header>
 
                 <div className="flex-1 overflow-auto p-4 md:p-10">
                     <div className="max-w-[1200px] mx-auto">
-                        <header className="flex justify-between items-center mb-8">
-                            <h1 className="text-3xl font-bold text-brand-blue text-2xl">All Leave Requests</h1>
+                        <header className="flex justify-end items-center mb-8">
                             <div className="flex items-center gap-4">
                                 <div className="flex bg-bg-slate/50 p-1.5 rounded-2xl w-full sm:w-auto overflow-x-auto scrollbar-hide">
                                     {["ALL", "REPORTING_MANAGERS", "OTHERS"].map((role) => (
@@ -311,9 +261,6 @@ export default function HrManagerLeaves() {
                                                 // Find employee for role check
                                                 const emp = employees.find(e => e.id === lv.employeeId || e.fullName === lv.employeeName);
                                                 const role = emp?.role;
-
-                                                // Hard exclude HR leaves
-                                                if (role === "HR") return false;
 
                                                 if (leaveRoleFilter === "ALL") return matchesSearch;
                                                 if (leaveRoleFilter === "REPORTING_MANAGERS") return matchesSearch && role === "REPORTING_MANAGER";
@@ -385,9 +332,8 @@ export default function HrManagerLeaves() {
                             </div>
                         </div>
                     </div>
-
-                </div >
-            </main >
-        </div >
+                </div>
+            </main>
+        </div>
     );
 }

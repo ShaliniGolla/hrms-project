@@ -116,9 +116,9 @@ export default function CandidatesPage() {
       {/* Main Content */}
       <main className="flex-1 flex flex-col overflow-hidden">
         {/* Premium Header */}
-        <header className="bg-brand-blue text-white p-6 md:px-10 flex items-center justify-between shadow-lg z-10">
-          <div className="flex items-center gap-5">
-            <div className="w-16 h-16 bg-brand-yellow rounded-full flex items-center justify-center text-brand-blue shadow-inner border-2 border-white/20 overflow-hidden text-xl font-bold">
+        <header className="bg-white px-8 py-4 flex items-center justify-between shadow-sm z-10 border-b border-brand-blue/5">
+          <div className="flex items-center gap-6">
+            <div className="w-11 h-11 bg-brand-blue/5 rounded-xl flex items-center justify-center border border-brand-blue/10 shadow-sm overflow-hidden text-sm font-black text-brand-blue">
               {user.photoPath ? (
                 <img src={user.photoPath} alt="Profile" className="w-full h-full object-cover" />
               ) : (
@@ -126,8 +126,8 @@ export default function CandidatesPage() {
               )}
             </div>
             <div>
-              <h1 className="text-xl font-bold tracking-tight">Candidates Directory</h1>
-              <p className="text-xs text-white/50 uppercase tracking-[0.2em] mt-1 font-bold">
+              <h1 className="text-xl font-black text-brand-blue tracking-tight">Candidates Directory</h1>
+              <p className="text-[10px] text-brand-blue/40 uppercase font-black tracking-[0.2em] mt-0.5">
                 Resource Infrastructure Audit
               </p>
             </div>
@@ -135,14 +135,14 @@ export default function CandidatesPage() {
 
           <div className="flex items-center gap-6">
             {/* Search Bar in Header Top Right */}
-            <div className="hidden md:flex items-center bg-white/10 border border-white/20 rounded-2xl px-4 py-2 w-64 focus-within:w-80 focus-within:bg-white/20 transition-all duration-300">
-              <svg className="w-4 h-4 text-white/40 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <div className="hidden md:flex items-center bg-bg-slate/50 border border-brand-blue/10 rounded-2xl px-4 py-2 w-64 focus-within:w-80 transition-all duration-300">
+              <svg className="w-4 h-4 text-brand-blue/30 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                 <circle cx="11" cy="11" r="8" />
                 <path d="M21 21l-4.35-4.35" />
               </svg>
               <input
                 type="text"
-                className="bg-transparent border-none outline-none text-xs text-white placeholder-white/40 w-full font-bold"
+                className="bg-transparent border-none outline-none text-xs text-brand-blue placeholder-brand-blue/40 w-full font-bold"
                 placeholder="Search resources..."
                 value={searchTerm}
                 onChange={handleSearchChange}

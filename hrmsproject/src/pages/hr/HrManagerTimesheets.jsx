@@ -3,10 +3,11 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../../components/Sidebar";
 import WeeklyTimesheetGrid from "../employee/timesheet/WeeklyTimesheetGrid";
+import { getHrNavItems } from "../../utils/hrNav";
 import { toast } from "react-toastify";
 
 export default function HrManagerTimesheets() {
-    const [activeTab, setActiveTab] = useState("timesheet");
+    const [activeTab, setActiveTab] = useState("timesheets");
     const [user, setUser] = useState({});
     const [loading, setLoading] = useState(true);
     const [timesheets, setTimesheets] = useState([]);
@@ -285,82 +286,7 @@ export default function HrManagerTimesheets() {
         return `${h12}:${m} ${ampm}`;
     };
 
-    const navItems = [
-        {
-            tab: "dashboard",
-            label: "Dashboard",
-            icon: (
-                <svg
-                    className="w-5 h-5"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                >
-                    <rect x="3" y="3" width="7" height="7"></rect>
-                    <rect x="14" y="3" width="7" height="7"></rect>
-                    <rect x="14" y="14" width="7" height="7"></rect>
-                    <rect x="3" y="14" width="7" height="7"></rect>
-                </svg>
-            ),
-            to: "/hr/actions",
-        },
-        {
-            tab: "candidates",
-            label: "Candidates",
-            icon: (
-                <svg
-                    className="w-5 h-5"
-                    viewBox="0 0 24 24"
-                    fill="currentColor"
-                >
-                    <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z" />
-                </svg>
-            ),
-            to: "/hr/actions/candidates",
-        },
-        {
-            tab: "managers",
-            label: "Reporting Managers",
-            icon: (
-                <svg
-                    className="w-5 h-5"
-                    viewBox="0 0 24 24"
-                    fill="currentColor"
-                >
-                    <path d="M9 7a4 4 0 118 0 4 4 0 01-8 0zM3 20a6 6 0 0112 0v1H3v-1zM17 13a4 4 0 110 8" />
-                </svg>
-            ),
-            to: "/hr/actions/reporting-managers",
-        },
-        {
-            tab: "leaves",
-            label: "Leaves",
-            icon: (
-                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                    <polyline points="14 2 14 8 20 8"></polyline>
-                    <line x1="16" y1="13" x2="8" y2="13"></line>
-                    <line x1="16" y1="17" x2="8" y2="17"></line>
-                    <polyline points="10 9 9 9 8 9"></polyline>
-                </svg>
-            ),
-            to: "/hr/actions/leaves"
-        },
-        {
-            tab: "timesheet",
-            label: "Timesheet",
-            icon: (
-                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <polyline points="12 6 12 12 16 14"></polyline>
-                </svg>
-            ),
-            to: "/hr/actions/timesheet"
-        },
-    ];
+    const navItems = getHrNavItems();
 
     return (
         <div className="flex min-h-screen bg-bg-slate font-brand text-brand-blue">
@@ -372,9 +298,9 @@ export default function HrManagerTimesheets() {
             />
 
             <main className="flex-1 flex flex-col">
-                <header className="bg-white px-8 py-6 flex items-center justify-between shadow-sm z-10 border-b border-brand-blue/5">
+                <header className="bg-white px-8 py-4 flex items-center justify-between shadow-sm z-10 border-b border-brand-blue/5">
                     <div className="flex items-center gap-6">
-                        <div className="w-14 h-14 bg-brand-blue/5 rounded-2xl flex items-center justify-center border border-brand-blue/10 shadow-sm overflow-hidden">
+                        <div className="w-11 h-11 bg-brand-blue/5 rounded-xl flex items-center justify-center border border-brand-blue/10 shadow-sm overflow-hidden">
                             <svg
                                 className="w-7 h-7 text-brand-blue/20"
                                 viewBox="0 0 24 24"
@@ -384,17 +310,29 @@ export default function HrManagerTimesheets() {
                             </svg>
                         </div>
                         <div>
-                            <h1 className="text-2xl font-black text-brand-blue tracking-tight">
+                            <h1 className="text-xl font-black text-brand-blue tracking-tight">
                                 Manager Timesheets
                             </h1>
                             <p className="text-[10px] text-brand-blue/40 uppercase font-black tracking-[0.2em] mt-0.5">
-                                {user.designation || "Human Resources"}
+                                {user.designation || "Human Resources Operations"}
                             </p>
                         </div>
                     </div>
+                    <div className="flex items-center gap-3">
+                        <button
+                            onClick={() => navigate("/employee/profile")}
+                            className="px-6 py-2 bg-brand-yellow text-brand-blue font-black rounded-xl text-[11px] uppercase tracking-widest shadow-lg shadow-brand-yellow/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-2"
+                        >
+                            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="12" cy="7" r="4"></circle>
+                            </svg>
+                            VIEW PROFILE
+                        </button>
+                    </div>
                 </header>
 
-                <div className="flex-1 p-4 md:p-10">
+                <div className="flex-1 p-4 md:py-2 md:px-10">
                     <div className="max-w-[1200px] mx-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
                         {tsSubView === 'summary' ? (
                             <>
@@ -439,14 +377,14 @@ export default function HrManagerTimesheets() {
                                             .filter(week => week.filteredEmployees.length > 0)
                                             .map((week, wIdx) => (
                                                 <div key={wIdx} className="bg-white rounded-[32px] shadow-xl border border-brand-blue/5 overflow-hidden">
-                                                    <div className="bg-gradient-to-r from-brand-blue to-indigo-900 p-3 px-6 flex items-center justify-between">
+                                                    <div className="bg-white p-3 px-6 flex items-center justify-between border-b border-brand-blue/5">
                                                         <div>
-                                                            <h3 className="text-white font-black text-sm tracking-tight uppercase">Week of {week.startDateStr}</h3>
-                                                            <p className="text-white/40 text-[9px] font-bold uppercase tracking-widest leading-none">{week.startDateStr} — {week.endDateStr}</p>
+                                                            <h3 className="text-brand-blue font-black text-sm tracking-tight uppercase">Week of {week.startDateStr}</h3>
+                                                            <p className="text-brand-blue/40 text-[9px] font-bold uppercase tracking-widest leading-none">{week.startDateStr} — {week.endDateStr}</p>
                                                         </div>
-                                                        <div className="bg-white/10 px-3 py-1 rounded-lg border border-white/10">
-                                                            <span className="text-white font-black text-xs">{week.filteredEmployees.length}</span>
-                                                            <span className="text-white/40 text-[8px] font-bold uppercase tracking-widest ml-2">Managers Recorded</span>
+                                                        <div className="bg-brand-blue/5 px-3 py-1 rounded-lg border border-brand-blue/10">
+                                                            <span className="text-brand-blue font-black text-xs">{week.filteredEmployees.length}</span>
+                                                            <span className="text-brand-blue/40 text-[8px] font-bold uppercase tracking-widest ml-2">Managers Recorded</span>
                                                         </div>
                                                     </div>
 

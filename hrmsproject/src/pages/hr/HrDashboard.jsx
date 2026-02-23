@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import LeaveRequestPage from "../employee/LeaveRequestPage";
 import Sidebar from '../../components/Sidebar';
 import PersonalTimesheetContent from "../employee/PersonalTimesheetContent";
+import { getHrNavItems } from "../../utils/hrNav";
 
 const HrDashboard = () => {
 	const navigate = useNavigate();
+	const location = useLocation();
 	const [activeTab, setActiveTab] = useState("dashboard");
 	const [user, setUser] = useState({});
 	const [employeeId, setEmployeeId] = useState(null);
@@ -21,6 +23,14 @@ const HrDashboard = () => {
 		setUser(userData);
 		fetchEmployeeProfile();
 	}, []);
+
+	useEffect(() => {
+		const params = new URLSearchParams(location.search);
+		const tab = params.get('tab');
+		if (tab) {
+			setActiveTab(tab);
+		}
+	}, [location]);
 
 	const fetchEmployeeProfile = async () => {
 		try {
@@ -90,7 +100,8 @@ const HrDashboard = () => {
 
 			if (allLeavesResponse.ok) {
 				const allLeavesData = await allLeavesResponse.json();
-				let allLeaves = allLeavesData.data || allLeavesData || [];
+				let allLeavesList = allLeavesData.data || allLeavesData || [];
+				let allLeaves = allLeavesList.filter(l => String(l.employeeId) === String(employeeId));
 				allLeaves = allLeaves.sort((a, b) => {
 					if (a.status === 'PENDING' && b.status !== 'PENDING') return -1;
 					if (a.status !== 'PENDING' && b.status === 'PENDING') return 1;
@@ -258,55 +269,7 @@ const HrDashboard = () => {
 		return days;
 	};
 
-	const navItems = [
-		{
-			tab: "dashboard",
-			label: "Dashboard",
-			icon: (
-				<svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-					<rect x="3" y="3" width="7" height="7"></rect>
-					<rect x="14" y="3" width="7" height="7"></rect>
-					<rect x="14" y="14" width="7" height="7"></rect>
-					<rect x="3" y="14" width="7" height="7"></rect>
-				</svg>
-			)
-		},
-		{
-			tab: "timesheet",
-			label: "Timesheet",
-			icon: (
-				<svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-					<circle cx="12" cy="12" r="10"></circle>
-					<polyline points="12 6 12 12 16 14"></polyline>
-				</svg>
-			)
-		},
-		{
-			tab: "leave",
-			label: "Leave Request",
-			icon: (
-				<svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-					<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-					<polyline points="14 2 14 8 20 8"></polyline>
-					<line x1="16" y1="13" x2="8" y2="13"></line>
-					<line x1="16" y1="17" x2="8" y2="17"></line>
-					<polyline points="10 9 9 9 8 9"></polyline>
-				</svg>
-			)
-		},
-		{
-			tab: "actions",
-			label: "Actions",
-			icon: (
-				<svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-					<circle cx="12" cy="12" r="10"></circle>
-					<line x1="12" y1="8" x2="12" y2="12"></line>
-					<line x1="12" y1="16" x2="12" y2="16"></line>
-				</svg>
-			),
-			to: "/hr/actions",
-		},
-	];
+	const navItems = getHrNavItems();
 
 	return (
 		<div className="flex h-screen bg-bg-slate font-brand text-brand-blue">
@@ -320,9 +283,9 @@ const HrDashboard = () => {
 			<main className="flex-1 flex flex-col overflow-hidden">
 				{/* Conditional Header */}
 				{activeTab === 'dashboard' ? (
-					<header className="bg-white px-8 py-6 flex items-center justify-between shadow-sm z-10 border-b border-brand-blue/5">
+					<header className="bg-white px-8 py-4 flex items-center justify-between shadow-sm z-10 border-b border-brand-blue/5">
 						<div className="flex items-center gap-6">
-							<div className="w-14 h-14 bg-brand-blue/5 rounded-2xl flex items-center justify-center border border-brand-blue/10 shadow-sm overflow-hidden">
+							<div className="w-11 h-11 bg-brand-blue/5 rounded-xl flex items-center justify-center border border-brand-blue/10 shadow-sm overflow-hidden">
 								{user.photoPath ? (
 									<img src={user.photoPath} alt="Profile" className="w-full h-full object-cover" />
 								) : (
@@ -332,11 +295,11 @@ const HrDashboard = () => {
 								)}
 							</div>
 							<div>
-								<h1 className="text-2xl font-black text-brand-blue tracking-tight">
+								<h1 className="text-xl font-black text-brand-blue tracking-tight">
 									Welcome back, {(user.firstName) ? user.firstName : "User"}!
 								</h1>
 								<p className="text-[10px] text-brand-blue/40 uppercase font-black tracking-[0.2em] mt-0.5">
-									{user.designation || "HR Administrator"}
+									{user.designation || "Human Resources Operations"}
 								</p>
 							</div>
 						</div>
@@ -354,32 +317,32 @@ const HrDashboard = () => {
 						</div>
 					</header>
 				) : (
-					<header className="bg-brand-blue text-white p-6 md:px-10 flex items-center justify-between shadow-lg z-10">
-						<div className="flex items-center gap-5">
-							<div className="w-16 h-16 bg-brand-yellow rounded-full flex items-center justify-center text-brand-blue shadow-inner border-2 border-white/20 overflow-hidden">
+					<header className="bg-white px-8 py-4 flex items-center justify-between shadow-sm z-10 border-b border-brand-blue/5">
+						<div className="flex items-center gap-6">
+							<div className="w-11 h-11 bg-brand-blue/5 rounded-xl flex items-center justify-center border border-brand-blue/10 shadow-sm overflow-hidden">
 								{user.photoPath ? (
 									<img src={user.photoPath} alt="Profile" className="w-full h-full object-cover" />
 								) : (
-									<svg className="w-9 h-9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+									<svg className="w-6 h-6 text-brand-blue/20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
 										<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
 										<circle cx="12" cy="7" r="4"></circle>
 									</svg>
 								)}
 							</div>
 							<div>
-								<h1 className="text-xl font-bold tracking-tight">
-									{user.fullName || "HR Administrator"}
+								<h1 className="text-xl font-black text-brand-blue tracking-tight">
+									{activeTab === 'timesheet' ? 'My Timesheets' : activeTab === 'leave' ? 'My Leave Management' : 'Human Resources Operations'}
 								</h1>
-								<p className="text-xs text-white/50 uppercase tracking-[0.2em] mt-1 font-bold">
-									{activeTab === 'timesheet' ? 'Timesheet Management' : activeTab === 'leave' ? 'Leave Management' : 'Administration Hub'}
+								<p className="text-[10px] text-brand-blue/40 uppercase font-black tracking-[0.2em] mt-0.5">
+									Personal Workspace
 								</p>
 							</div>
 						</div>
 						<button
 							onClick={() => navigate("/employee/profile")}
-							className="btn-primary flex items-center gap-2 text-sm"
+							className="px-6 py-2 bg-brand-yellow text-brand-blue font-black rounded-xl text-[11px] uppercase tracking-widest shadow-lg shadow-brand-yellow/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-2"
 						>
-							<svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+							<svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
 								<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
 								<circle cx="12" cy="7" r="4"></circle>
 							</svg>
@@ -497,7 +460,6 @@ const HrDashboard = () => {
 									<table className="w-full text-left border-collapse text-sm">
 										<thead className="bg-bg-slate">
 											<tr className="text-brand-blue/40 font-bold uppercase tracking-widest text-[9px]">
-												<th className="p-4 px-6 border-b border-brand-blue/5">Employee</th>
 												<th className="p-4 px-6 border-b border-brand-blue/5">Type</th>
 												<th className="p-4 px-6 border-b border-brand-blue/5">Reason</th>
 												<th className="p-4 px-6 border-b border-brand-blue/5 text-center">Dates</th>
@@ -509,17 +471,11 @@ const HrDashboard = () => {
 										<tbody className="divide-y divide-brand-blue/5">
 											{loading ? (
 												<tr>
-													<td colSpan="7" className="p-8 text-center text-brand-blue/30 font-bold uppercase tracking-widest text-[10px]">Loading leave history...</td>
+													<td colSpan="6" className="p-8 text-center text-brand-blue/30 font-bold uppercase tracking-widest text-[10px]">Loading leave history...</td>
 												</tr>
 											) : recentLeaves.length > 0 ? (
 												recentLeaves.map((leave) => (
 													<tr key={leave.id} className="hover:bg-bg-slate transition-colors font-medium">
-														<td className="p-4 px-6">
-															<div className="flex flex-col">
-																<span className="text-brand-blue font-bold text-xs uppercase whitespace-nowrap">{leave.employeeName}</span>
-																<span className="text-[9px] text-brand-blue/40 font-bold">#{leave.employeeId}</span>
-															</div>
-														</td>
 														<td className="p-4 px-6 font-bold text-brand-blue uppercase text-xs">{leave.leaveType}</td>
 														<td className="p-4 px-6 text-brand-blue/60 text-xs italic truncate max-w-[150px]">{leave.reason || "-"}</td>
 														<td className="p-4 px-6 text-brand-blue/70 text-xs text-center whitespace-nowrap">
@@ -551,7 +507,7 @@ const HrDashboard = () => {
 												))
 											) : (
 												<tr>
-													<td colSpan="9" className="p-8 text-center text-brand-blue/30 font-bold uppercase tracking-widest text-[10px]">No leave history found</td>
+													<td colSpan="6" className="p-8 text-center text-brand-blue/30 font-bold uppercase tracking-widest text-[10px]">No leave history found</td>
 												</tr>
 											)}
 										</tbody>

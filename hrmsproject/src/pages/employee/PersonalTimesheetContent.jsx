@@ -251,7 +251,7 @@ const PersonalTimesheetContent = ({ employeeId, user, profileResolved = true }) 
     };
 
     return (
-        <div className="h-[600px] max-w-7xl mx-auto flex flex-col overflow-hidden px-4">
+        <div className="h-[600px] max-w-5xl mx-auto flex flex-col overflow-hidden px-4">
             {view === 'summary' && (
                 <div className="flex justify-end mb-4 shrink-0">
                     <div />

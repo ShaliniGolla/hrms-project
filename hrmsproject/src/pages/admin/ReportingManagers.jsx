@@ -165,14 +165,14 @@ export default function ReportingManagers() {
       {/* ================= MAIN CONTENT ================= */}
       <main className="flex-1 flex flex-col overflow-hidden">
         {/* Single Professional Header */}
-        <header className="bg-brand-blue text-white p-6 md:px-10 flex items-center justify-between shadow-lg z-10">
-          <div className="flex items-center gap-5">
-            <div className="w-16 h-16 bg-brand-yellow rounded-full flex items-center justify-center text-brand-blue shadow-inner border-2 border-white/20 overflow-hidden text-xl font-bold">
+        <header className="bg-white px-8 py-4 flex items-center justify-between shadow-sm z-10 border-b border-brand-blue/5">
+          <div className="flex items-center gap-6">
+            <div className="w-11 h-11 bg-brand-blue/5 rounded-xl flex items-center justify-center border border-brand-blue/10 shadow-sm overflow-hidden text-sm font-black text-brand-blue">
               {(JSON.parse(localStorage.getItem("user"))?.firstName?.[0]) || "A"}
             </div>
             <div>
-              <h1 className="text-xl font-bold tracking-tight">Reporting Manager</h1>
-              <p className="text-xs text-white/50 uppercase tracking-[0.2em] mt-1 font-bold">
+              <h1 className="text-xl font-black text-brand-blue tracking-tight">Reporting Manager</h1>
+              <p className="text-[10px] text-brand-blue/40 uppercase font-black tracking-[0.2em] mt-0.5">
                 Manager & Team Administration
               </p>
             </div>
@@ -180,7 +180,7 @@ export default function ReportingManagers() {
           <div className="flex items-center gap-3">
             <button
               onClick={() => navigate(-1)}
-              className="px-6 py-2 bg-white/10 hover:bg-white/20 text-white font-bold rounded-xl text-[11px] uppercase tracking-widest transition-all flex items-center gap-2 border border-white/10"
+              className="px-6 py-2 bg-brand-yellow text-brand-blue font-black rounded-xl text-[11px] uppercase tracking-widest shadow-lg shadow-brand-yellow/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-2"
             >
               <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M19 12H5M12 19l-7-7 7-7" />

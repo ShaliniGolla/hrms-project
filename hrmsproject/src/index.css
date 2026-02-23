@@ -6,7 +6,13 @@
   --color-brand-blue-hover: #1a2850;
   --color-bg-slate: #f8fafc;
 
-  --font-brand: "Inter", "Outfit", sans-serif;
+  --font-brand: "Segoe UI", "Segoe UI Web", -apple-system, BlinkMacSystemFont, Arial, sans-serif;
+
+  /* Decrease global boldness by remapping weights */
+  --font-weight-black: 700;
+  --font-weight-extrabold: 700;
+  --font-weight-bold: 600;
+  --font-weight-semibold: 500;
 
   --animate-like: like-animation 0.4s ease-in-out;
 }
@@ -32,6 +38,7 @@
 }
 
 * {
+  font-family: var(--font-brand);
   scrollbar-width: none;
   /* Firefox */
   -ms-overflow-style: none;
@@ -46,6 +53,17 @@
 body {
   margin: 0;
   min-height: 100vh;
+  font-family: var(--font-brand);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-weight: 600;
+  /* Decreased boldness for headings */
 }
 
 /* Reusable styles for Like Buttons, Hover Effects */

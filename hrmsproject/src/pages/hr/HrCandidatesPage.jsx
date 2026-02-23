@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../../components/Sidebar";
 import useEmployees from "../../hooks/useEmployees";
+import { getHrNavItems } from "../../utils/hrNav";
 
 export default function HrCandidatesPage() {
   const { employees, loading, error } = useEmployees();
@@ -85,82 +86,7 @@ export default function HrCandidatesPage() {
     setTimeout(() => setToast(null), 3500);
   };
 
-  const navItems = [
-    {
-      tab: "dashboard",
-      label: "Dashboard",
-      icon: (
-        <svg
-          className="w-5 h-5"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <rect x="3" y="3" width="7" height="7"></rect>
-          <rect x="14" y="3" width="7" height="7"></rect>
-          <rect x="14" y="14" width="7" height="7"></rect>
-          <rect x="3" y="14" width="7" height="7"></rect>
-        </svg>
-      ),
-      to: "/hr/actions",
-    },
-    {
-      tab: "candidates",
-      label: "Candidates",
-      icon: (
-        <svg
-          className="w-5 h-5"
-          viewBox="0 0 24 24"
-          fill="currentColor"
-        >
-          <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z" />
-        </svg>
-      ),
-      to: "/hr/actions/candidates",
-    },
-    {
-      tab: "managers",
-      label: "Reporting Managers",
-      icon: (
-        <svg
-          className="w-5 h-5"
-          viewBox="0 0 24 24"
-          fill="currentColor"
-        >
-          <path d="M9 7a4 4 0 118 0 4 4 0 01-8 0zM3 20a6 6 0 0112 0v1H3v-1zM17 13a4 4 0 110 8" />
-        </svg>
-      ),
-      to: "/hr/actions/reporting-managers",
-    },
-    {
-      tab: "leaves",
-      label: "Leaves",
-      icon: (
-        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-          <polyline points="14 2 14 8 20 8"></polyline>
-          <line x1="16" y1="13" x2="8" y2="13"></line>
-          <line x1="16" y1="17" x2="8" y2="17"></line>
-          <polyline points="10 9 9 9 8 9"></polyline>
-        </svg>
-      ),
-      to: "/hr/actions/leaves"
-    },
-    {
-      tab: "timesheet",
-      label: "Timesheet",
-      icon: (
-        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="12" cy="12" r="10"></circle>
-          <polyline points="12 6 12 12 16 14"></polyline>
-        </svg>
-      ),
-      to: "/hr/actions/timesheet"
-    },
-  ];
+  const navItems = getHrNavItems();
 
   return (
     <div className="flex h-screen bg-bg-slate font-brand text-brand-blue overflow-hidden">
@@ -173,38 +99,51 @@ export default function HrCandidatesPage() {
 
       <main className="flex-1 flex flex-col overflow-hidden">
         {/* Premium Header */}
-        <header className="bg-brand-blue text-white p-6 md:px-10 flex items-center justify-between shadow-lg z-10">
-          <div className="flex items-center gap-5">
-            <div className="w-16 h-16 bg-brand-yellow rounded-full flex items-center justify-center text-brand-blue shadow-inner border-2 border-white/20 overflow-hidden text-xl font-bold">
-              {user.photoPath ? (
-                <img src={user.photoPath} alt="Profile" className="w-full h-full object-cover" />
-              ) : (
-                (user.firstName?.[0] || user.fullName?.[0]) || "H"
-              )}
+        <header className="bg-white px-8 py-4 flex items-center justify-between shadow-sm z-10 border-b border-brand-blue/5">
+          <div className="flex items-center gap-6">
+            <div className="w-11 h-11 bg-brand-blue/5 rounded-xl flex items-center justify-center border border-brand-blue/10 shadow-sm overflow-hidden">
+              <svg
+                className="w-7 h-7 text-brand-blue/20"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+              >
+                <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z" />
+              </svg>
             </div>
             <div>
-              <h1 className="text-xl font-bold tracking-tight">Personnel Candidates</h1>
-              <p className="text-xs text-white/50 uppercase tracking-[0.2em] font-bold mt-1">
+              <h1 className="text-xl font-black text-brand-blue tracking-tight">
+                Personnel Candidates
+              </h1>
+              <p className="text-[10px] text-brand-blue/40 uppercase font-black tracking-[0.2em] mt-0.5">
                 {user.designation || "Human Resources Operations"}
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-6">
-            {/* Search Bar in Header Top Right */}
-            <div className="hidden md:flex items-center bg-white/10 border border-white/20 rounded-2xl px-4 py-2 w-64 focus-within:w-80 focus-within:bg-white/20 transition-all duration-300">
-              <svg className="w-4 h-4 text-white/40 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <div className="hidden md:flex items-center bg-bg-slate border border-brand-blue/10 rounded-2xl px-4 py-2 w-64 focus-within:w-80 transition-all duration-300">
+              <svg className="w-4 h-4 text-brand-blue/20 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                 <circle cx="11" cy="11" r="8" />
                 <path d="M21 21l-4.35-4.35" />
               </svg>
               <input
                 type="text"
-                className="bg-transparent border-none outline-none text-xs text-white placeholder-white/40 w-full font-bold"
+                className="bg-transparent border-none outline-none text-xs text-brand-blue placeholder-brand-blue/20 w-full font-bold"
                 placeholder="Search candidates..."
                 value={searchTerm}
                 onChange={handleSearchChange}
               />
             </div>
+            <button
+              onClick={() => navigate("/employee/profile")}
+              className="px-6 py-2 bg-brand-yellow text-brand-blue font-black rounded-xl text-[11px] uppercase tracking-widest shadow-lg shadow-brand-yellow/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-2"
+            >
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                <circle cx="12" cy="7" r="4"></circle>
+              </svg>
+              VIEW PROFILE
+            </button>
           </div>
         </header>
 
