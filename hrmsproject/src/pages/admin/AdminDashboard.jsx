@@ -5,8 +5,9 @@ import EmployeeSelectorModal from "../../components/EmployeeSelectorModal";
 import AddEmployeeModal from "../../components/AddEmployeeModal";
 import HRSelectorModal from "../../components/HRSelectorModal";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, Label } from 'recharts';
-import { Calendar as CalendarIconSVG } from "lucide-react";
+import { Calendar as CalendarIconSVG, Eye } from "lucide-react";
 import YearlyHolidayCalendar from "../common/YearlyHolidayCalendar";
+import LeaveDetailsModal from "../../components/LeaveDetailsModal";
 function HRTeamDisplay() {
   const [hrUsers, setHrUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -133,6 +134,8 @@ export default function AdminDashboard() {
   const [employees, setEmployees] = useState([]);
   const [leaveSearch, setLeaveSearch] = useState("");
   const [leaveRoleFilter, setLeaveRoleFilter] = useState("ALL");
+  const [selectedLeave, setSelectedLeave] = useState(null);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
 
   const [stats, setStats] = useState({
     totalEmployees: 0,
@@ -886,7 +889,7 @@ export default function AdminDashboard() {
                                     <span className="text-[8px] font-black text-brand-blue/10 uppercase font-bold">to</span>
                                     <span className="text-[10px] font-black text-brand-blue">{formatDate(leave.endDate)}</span>
                                   </div>
-                                  <span className="mt-1 px-2 py-0.5 bg-brand-yellow text-brand-blue text-[8px] font-black rounded-md">{calculateLeaveDays(leave.startDate, leave.endDate)} Days</span>
+                                  <span className="mt-1 px-2 py-0.5 bg-brand-yellow text-brand-blue text-[8px] font-black rounded-md">{(leave.daysCount != null ? leave.daysCount : calculateLeaveDays(leave.startDate, leave.endDate)).toFixed(1)} Days</span>
                                 </div>
                               </td>
                               <td className="py-3 px-6 text-center">
@@ -900,30 +903,34 @@ export default function AdminDashboard() {
                                 </span>
                               </td>
                               <td className="py-3 px-8 text-right">
-                                {leave.status === 'PENDING' ? (
-                                  <div className="flex justify-end gap-2 scale-90 md:scale-100 origin-right transition-all">
-                                    <button
-                                      onClick={() => handleApprove(leave.id)}
-                                      className="px-4 py-2 bg-emerald-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-600 transition-all shadow-md active:scale-95 flex items-center gap-2"
-                                    >
-                                      Approve
-                                    </button>
-                                    <button
-                                      onClick={() => handleRejectClick(leave.id)}
-                                      className="px-4 py-2 bg-red-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-red-600 transition-all shadow-md active:scale-95 flex items-center gap-2"
-                                    >
-                                      Reject
-                                    </button>
-                                  </div>
-                                ) : (
-                                  <div className="flex flex-col items-end text-right">
-                                    <span className={`px-4 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border shadow-sm transition-all ${leave.status === 'APPROVED'
-                                      ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
-                                      : 'bg-red-50 text-red-600 border-red-100'
-                                      }`}>
-                                      {leave.status}
-                                    </span>
-                                    <div className="mt-1 flex flex-col items-end">
+                                <div className="flex justify-end gap-2 scale-90 md:scale-100 origin-right transition-all">
+                                  <button
+                                    onClick={() => {
+                                      setSelectedLeave(leave);
+                                      setIsDetailsModalOpen(true);
+                                    }}
+                                    className="p-2 bg-brand-blue/5 text-brand-blue rounded-lg hover:bg-brand-blue hover:text-white transition-all shadow-sm"
+                                    title="View Details"
+                                  >
+                                    <Eye size={16} />
+                                  </button>
+                                  {leave.status === 'PENDING' ? (
+                                    <>
+                                      <button
+                                        onClick={() => handleApprove(leave.id)}
+                                        className="px-4 py-2 bg-emerald-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-600 transition-all shadow-md active:scale-95 flex items-center gap-2"
+                                      >
+                                        Approve
+                                      </button>
+                                      <button
+                                        onClick={() => handleRejectClick(leave.id)}
+                                        className="px-4 py-2 bg-red-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-red-600 transition-all shadow-md active:scale-95 flex items-center gap-2"
+                                      >
+                                        Reject
+                                      </button>
+                                    </>
+                                  ) : (
+                                    <div className="flex flex-col items-end text-right">
                                       <span className="text-[8px] font-black text-brand-blue/30 uppercase tracking-widest">
                                         By: {leave.approvedBy || "System"}
                                       </span>
@@ -931,11 +938,8 @@ export default function AdminDashboard() {
                                         {formatDateTime(leave.reviewedAt)}
                                       </span>
                                     </div>
-                                    {leave.status === 'REJECTED' && leave.rejectionReason && (
-                                      <span className="text-[9px] text-red-400 font-bold truncate max-w-[150px] mt-1">{leave.rejectionReason}</span>
-                                    )}
-                                  </div>
-                                )}
+                                  )}
+                                </div>
                               </td>
                             </tr>
                           ));
@@ -1164,6 +1168,12 @@ export default function AdminDashboard() {
           </div>
         </div>
       )}
+
+      <LeaveDetailsModal
+        isOpen={isDetailsModalOpen}
+        onClose={() => setIsDetailsModalOpen(false)}
+        leave={selectedLeave}
+      />
     </>
   );
 }

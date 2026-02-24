@@ -27,10 +27,12 @@ public class LeaveDTO {
     private LocalDateTime submittedAt;
     private String approvedBy;
     private LocalDateTime reviewedAt;
+    private Double daysCount;
+    private java.util.Map<String, String> sessionData;
     
-    private Integer casualLeavesRemaining;
-    private Integer sickLeavesRemaining;
-    private Integer earnedLeavesRemaining;
+    private Double casualLeavesRemaining;
+    private Double sickLeavesRemaining;
+    private Double earnedLeavesRemaining;
     
     // Getters and Setters
     public Long getId() { return id; }
@@ -57,12 +59,16 @@ public class LeaveDTO {
     public void setApprovedBy(String approvedBy) { this.approvedBy = approvedBy; }
     public LocalDateTime getReviewedAt() { return reviewedAt; }
     public void setReviewedAt(LocalDateTime reviewedAt) { this.reviewedAt = reviewedAt; }
-
-    public Integer getCasualLeavesRemaining() { return casualLeavesRemaining; }
-    public void setCasualLeavesRemaining(Integer casualLeavesRemaining) { this.casualLeavesRemaining = casualLeavesRemaining; }
-    public Integer getSickLeavesRemaining() { return sickLeavesRemaining; }
-    public void setSickLeavesRemaining(Integer sickLeavesRemaining) { this.sickLeavesRemaining = sickLeavesRemaining; }
-    public Integer getEarnedLeavesRemaining() { return earnedLeavesRemaining; }
-    public void setEarnedLeavesRemaining(Integer earnedLeavesRemaining) { this.earnedLeavesRemaining = earnedLeavesRemaining; }
+ 
+    public Double getCasualLeavesRemaining() { return casualLeavesRemaining; }
+    public void setCasualLeavesRemaining(Double casualLeavesRemaining) { this.casualLeavesRemaining = casualLeavesRemaining; }
+    public Double getSickLeavesRemaining() { return sickLeavesRemaining; }
+    public void setSickLeavesRemaining(Double sickLeavesRemaining) { this.sickLeavesRemaining = sickLeavesRemaining; }
+    public Double getEarnedLeavesRemaining() { return earnedLeavesRemaining; }
+    public void setEarnedLeavesRemaining(Double earnedLeavesRemaining) { this.earnedLeavesRemaining = earnedLeavesRemaining; }
+    public Double getDaysCount() { return daysCount; }
+    public void setDaysCount(Double daysCount) { this.daysCount = daysCount; }
+    public java.util.Map<String, String> getSessionData() { return sessionData; }
+    public void setSessionData(java.util.Map<String, String> sessionData) { this.sessionData = sessionData; }
 }
 

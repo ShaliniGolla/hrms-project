@@ -117,12 +117,12 @@ public class DataSeeder implements CommandLineRunner {
             if (leaveBalanceRepository.findByEmployeeId(employee.getId()).isEmpty()) {
                 LeaveBalance balance = new LeaveBalance();
                 balance.setEmployee(employee);
-                balance.setCasualLeavesTotal(10);
-                balance.setCasualLeavesUsed(0);
-                balance.setSickLeavesTotal(6);
-                balance.setSickLeavesUsed(0);
-                balance.setEarnedLeavesTotal(12);
-                balance.setEarnedLeavesUsed(0);
+                balance.setCasualLeavesTotal(10.0);
+                balance.setCasualLeavesUsed(0.0);
+                balance.setSickLeavesTotal(6.0);
+                balance.setSickLeavesUsed(0.0);
+                balance.setEarnedLeavesTotal(12.0);
+                balance.setEarnedLeavesUsed(0.0);
                 leaveBalanceRepository.save(balance);
             }
         });

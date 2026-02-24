@@ -5,6 +5,8 @@ import WeeklyTimesheetGrid from "../employee/timesheet/WeeklyTimesheetGrid";
 import { toast } from "react-toastify";
 import Sidebar from "../../components/Sidebar";
 import { getRmNavItems } from "../../utils/rmNav";
+import { Eye } from "lucide-react";
+import LeaveDetailsModal from "../../components/LeaveDetailsModal";
 
 export default function ReportingManagerTeam() {
     const navigate = useNavigate();
@@ -30,6 +32,8 @@ export default function ReportingManagerTeam() {
     const [tsSubView, setTsSubView] = useState('summary'); // 'summary' or 'grid'
     const [selectedWeek, setSelectedWeek] = useState(null);
     const [groupedWeeks, setGroupedWeeks] = useState([]);
+    const [selectedLeave, setSelectedLeave] = useState(null);
+    const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
 
     useEffect(() => {
         const params = new URLSearchParams(location.search);
@@ -527,20 +531,27 @@ export default function ReportingManagerTeam() {
                                                         <td className="p-5 px-6 font-bold text-brand-blue uppercase text-xs">{leave.employeeName}</td>
                                                         <td className="p-5 px-6 text-brand-blue/70 text-xs font-bold">{leave.type || leave.leaveType}</td>
                                                         <td className="p-5 px-6 text-brand-blue/60 text-xs text-center">{leave.startDate}{leave.endDate && leave.endDate !== leave.startDate ? ` → ${leave.endDate}` : ''}</td>
-                                                        <td className="p-5 px-6 text-center"><span className="bg-brand-blue/5 text-brand-blue px-3 py-1 rounded-lg font-black text-[11px]">{calculateLeaveDays(leave.startDate, leave.endDate)}</span></td>
+                                                        <td className="p-5 px-6 text-center"><span className="bg-brand-blue/5 text-brand-blue px-3 py-1 rounded-lg font-black text-[11px]">{leave.daysCount != null ? leave.daysCount.toFixed(1) : calculateLeaveDays(leave.startDate, leave.endDate)}</span></td>
                                                         <td className="p-5 px-6 text-center"><span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border transition-all ${leave.status === 'PENDING' ? 'bg-brand-yellow/10 text-brand-yellow-dark' : leave.status === 'APPROVED' ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}>{leave.status}</span></td>
                                                         <td className="p-5 px-8 text-right">
-                                                            {leave.status === 'PENDING' ? (
-                                                                <div className="flex justify-end gap-2">
-                                                                    <button onClick={async () => { await fetch(`http://localhost:8080/api/leaves/${leave.id}/approve`, { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ approverId: managerId }) }); fetchLeaves(managerId); }} className="px-3 py-1 bg-emerald-500 text-white rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-emerald-600 shadow-md">Approve</button>
-                                                                    <button onClick={async () => { await fetch(`http://localhost:8080/api/leaves/${leave.id}/reject`, { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ approverId: managerId, reason: "Rejected by manager" }) }); fetchLeaves(managerId); }} className="px-3 py-1 bg-red-500 text-white rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-red-600 shadow-md">Reject</button>
-                                                                </div>
-                                                            ) : (
-                                                                <div className="flex flex-col items-end">
-                                                                    <span className="text-[8px] font-black text-brand-blue/30 italic uppercase">By: {leave.approvedBy || "System"}</span>
-                                                                    <span className="text-[8px] font-bold text-brand-blue/20 uppercase mt-0.5">{formatDateTime(leave.reviewedAt)}</span>
-                                                                </div>
-                                                            )}
+                                                            <div className="flex justify-end gap-2">
+                                                                <button
+                                                                    onClick={() => {
+                                                                        setSelectedLeave(leave);
+                                                                        setIsDetailsModalOpen(true);
+                                                                    }}
+                                                                    className="p-2 bg-brand-blue/5 text-brand-blue rounded-lg hover:bg-brand-blue hover:text-white transition-all shadow-sm"
+                                                                    title="View Details"
+                                                                >
+                                                                    <Eye size={14} />
+                                                                </button>
+                                                                {leave.status === 'PENDING' && (
+                                                                    <>
+                                                                        <button onClick={async () => { await fetch(`http://localhost:8080/api/leaves/${leave.id}/approve`, { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ approverId: managerId }) }); fetchLeaves(managerId); }} className="px-3 py-1 bg-emerald-500 text-white rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-emerald-600 shadow-md">Approve</button>
+                                                                        <button onClick={async () => { await fetch(`http://localhost:8080/api/leaves/${leave.id}/reject`, { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ approverId: managerId, reason: "Rejected by manager" }) }); fetchLeaves(managerId); }} className="px-3 py-1 bg-red-500 text-white rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-red-600 shadow-md">Reject</button>
+                                                                    </>
+                                                                )}
+                                                            </div>
                                                         </td>
                                                     </tr>
                                                 ))
@@ -553,6 +564,11 @@ export default function ReportingManagerTeam() {
                     )}
                 </div>
             </main>
+            <LeaveDetailsModal
+                isOpen={isDetailsModalOpen}
+                onClose={() => setIsDetailsModalOpen(false)}
+                leave={selectedLeave}
+            />
         </div>
     );
 }

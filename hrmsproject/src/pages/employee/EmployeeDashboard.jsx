@@ -4,6 +4,8 @@ import LeaveRequestPage from "./LeaveRequestPage";
 import PersonalTimesheetContent from "./PersonalTimesheetContent";
 import EmployeeOwnProfile from "./EmployeeOwnProfile";
 import Sidebar from '../../components/Sidebar';
+import { Eye } from "lucide-react";
+import LeaveDetailsModal from "../../components/LeaveDetailsModal";
 
 const EmployeeDashboard = () => {
 	const navigate = useNavigate();
@@ -18,6 +20,8 @@ const EmployeeDashboard = () => {
 	const [loading, setLoading] = useState(true);
 	const [timesheetLoading, setTimesheetLoading] = useState(false);
 	const [error, setError] = useState("");
+	const [selectedLeave, setSelectedLeave] = useState(null);
+	const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
 
 	useEffect(() => {
 		const params = new URLSearchParams(location.search);
@@ -547,14 +551,26 @@ const EmployeeDashboard = () => {
 															)}
 														</td>
 														<td className="p-4 px-6 text-right">
-															{leave.status === 'PENDING' && (
+															<div className="flex justify-end gap-2">
 																<button
-																	onClick={() => handleRecallLeave(leave.id)}
-																	className="like-btn px-4 py-1.5 bg-red-50 text-red-500 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-red-500 hover:text-white transition-all shadow-sm"
+																	onClick={() => {
+																		setSelectedLeave(leave);
+																		setIsDetailsModalOpen(true);
+																	}}
+																	className="p-2 bg-brand-blue/5 text-brand-blue rounded-lg hover:bg-brand-blue hover:text-white transition-all shadow-sm"
+																	title="View Details"
 																>
-																	Recall
+																	<Eye size={16} />
 																</button>
-															)}
+																{leave.status === 'PENDING' && (
+																	<button
+																		onClick={() => handleRecallLeave(leave.id)}
+																		className="px-4 py-1.5 bg-red-50 text-red-500 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-red-500 hover:text-white transition-all shadow-sm"
+																	>
+																		Recall
+																	</button>
+																)}
+															</div>
 														</td>
 													</tr>
 												))
@@ -595,6 +611,11 @@ const EmployeeDashboard = () => {
 
 				</div>
 			</main>
+			<LeaveDetailsModal
+				isOpen={isDetailsModalOpen}
+				onClose={() => setIsDetailsModalOpen(false)}
+				leave={selectedLeave}
+			/>
 		</div>
 	);
 };

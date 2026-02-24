@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
+import { Eye } from 'lucide-react';
+import LeaveDetailsModal from '../../components/LeaveDetailsModal';
 
 const LeaveRequestPage = ({ employeeId, leaveBalance, onLeaveRequestSuccess }) => {
   const [formData, setFormData] = useState({
@@ -7,6 +9,8 @@ const LeaveRequestPage = ({ employeeId, leaveBalance, onLeaveRequestSuccess }) =
     startDate: '',
     endDate: '',
     reason: '',
+    daysCount: 0,
+    sessionData: {}, // { "2024-02-24": "FULL", "2024-02-25": "MORNING" }
   });
   const [blockedDates, setBlockedDates] = useState([]);
   const [isPopupOpen, setIsPopupOpen] = useState(false);
@@ -14,6 +18,8 @@ const LeaveRequestPage = ({ employeeId, leaveBalance, onLeaveRequestSuccess }) =
   const [historyLoading, setHistoryLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [holidays, setHolidays] = useState([]);
+  const [selectedLeave, setSelectedLeave] = useState(null);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
 
   // Fetch all leaves for this employee
   const fetchLeaveHistory = async () => {
@@ -73,10 +79,63 @@ const LeaveRequestPage = ({ employeeId, leaveBalance, onLeaveRequestSuccess }) =
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+
+    setFormData((prev) => {
+      const newState = { ...prev, [name]: value };
+
+      // If dates changed, sync the breakdown
+      if (name === 'startDate' || name === 'endDate') {
+        if (newState.startDate && newState.endDate) {
+          const sessions = { ...prev.sessionData };
+          const range = getDatesInRange(newState.startDate, newState.endDate);
+
+          const newSessionData = {};
+          range.forEach(date => {
+            newSessionData[date] = sessions[date] || "FULL";
+          });
+          newState.sessionData = newSessionData;
+          newState.daysCount = calculateTotalFromSessions(newSessionData);
+        }
+      }
+      return newState;
+    });
+  };
+
+  const handleSessionChange = (date, session) => {
+    setFormData(prev => {
+      const newSessionData = { ...prev.sessionData, [date]: session };
+      return {
+        ...prev,
+        sessionData: newSessionData,
+        daysCount: calculateTotalFromSessions(newSessionData)
+      };
+    });
+  };
+
+  const getDatesInRange = (start, end) => {
+    const dates = [];
+    let d = new Date(start);
+    const endDate = new Date(end);
+    const holidayDates = holidays.map(h => h.holidayDate);
+
+    while (d <= endDate) {
+      const day = d.getDay();
+      const iso = d.toISOString().slice(0, 10);
+      const isWeekend = day === 0 || day === 6;
+      const isHoliday = holidayDates.includes(iso);
+
+      if (!isWeekend && !isHoliday) {
+        dates.push(iso);
+      }
+      d.setDate(d.getDate() + 1);
+    }
+    return dates;
+  };
+
+  const calculateTotalFromSessions = (sessions) => {
+    return Object.values(sessions).reduce((acc, val) => {
+      return acc + (val === "FULL" ? 1.0 : 0.5);
+    }, 0);
   };
 
   // Calculate leave days, skipping weekends and blocked days
@@ -85,7 +144,7 @@ const LeaveRequestPage = ({ employeeId, leaveBalance, onLeaveRequestSuccess }) =
     const endDate = new Date(end);
     if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) return 0;
 
-    let days = 0;
+    let total = 0;
     let d = new Date(startDate);
     const holidayDates = holidays.map(h => h.holidayDate);
 
@@ -97,11 +156,11 @@ const LeaveRequestPage = ({ employeeId, leaveBalance, onLeaveRequestSuccess }) =
       const isBlocked = !ignoreBlockedDates && blockedDates.includes(iso);
 
       if (!isWeekend && !isHoliday && !isBlocked) {
-        days++;
+        total += 1.0;
       }
       d.setDate(d.getDate() + 1);
     }
-    return days;
+    return total;
   };
 
   const getDateBreakdown = () => {
@@ -131,7 +190,9 @@ const LeaveRequestPage = ({ employeeId, leaveBalance, onLeaveRequestSuccess }) =
         label = `${dayName}(weekend)`;
         type = "weekend";
       } else {
-        label = `${formData.leaveType.toLowerCase()} leave`;
+        const session = formData.sessionData[iso] || "FULL";
+        const suffix = session !== "FULL" ? ` (${session.toLowerCase()})` : '';
+        label = `${formData.leaveType.toLowerCase()} leave${suffix}`;
         type = "leave";
       }
 
@@ -172,8 +233,8 @@ const LeaveRequestPage = ({ employeeId, leaveBalance, onLeaveRequestSuccess }) =
     const availableKey = `${leaveTypeKey}LeavesRemaining`;
     const availableLeaves = leaveBalance[availableKey] || 0;
 
-    if (availableLeaves < daysRequested) {
-      toast.error(`Insufficient ${formData.leaveType} leaves. Available: ${availableLeaves}, Requested: ${daysRequested}`);
+    if (availableLeaves < formData.daysCount) {
+      toast.error(`Insufficient ${formData.leaveType} leaves. Available: ${availableLeaves.toFixed(2)}, Requested: ${formData.daysCount}`);
       return;
     }
 
@@ -185,6 +246,8 @@ const LeaveRequestPage = ({ employeeId, leaveBalance, onLeaveRequestSuccess }) =
         startDate: formData.startDate,
         endDate: formData.endDate,
         reason: formData.reason,
+        daysCount: formData.daysCount,
+        sessionData: formData.sessionData
       };
 
       const response = await fetch('http://localhost:8080/api/leaves', {
@@ -205,6 +268,8 @@ const LeaveRequestPage = ({ employeeId, leaveBalance, onLeaveRequestSuccess }) =
           startDate: '',
           endDate: '',
           reason: '',
+          daysCount: 0,
+          sessionData: {},
         });
         setIsPopupOpen(false);
         fetchLeaveHistory(); // Refresh history
@@ -271,6 +336,7 @@ const LeaveRequestPage = ({ employeeId, leaveBalance, onLeaveRequestSuccess }) =
                 <th className="p-4 px-6 border-b border-white/5">End Date</th>
                 <th className="p-4 px-6 border-b border-white/5 text-center">Days</th>
                 <th className="p-4 px-6 border-b border-white/5 text-center">Status</th>
+                <th className="p-4 px-6 border-b border-white/5 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-brand-blue/5">
@@ -282,7 +348,7 @@ const LeaveRequestPage = ({ employeeId, leaveBalance, onLeaveRequestSuccess }) =
                 </tr>
               ) : leaveHistory.length > 0 ? (
                 leaveHistory.map((leave) => {
-                  const daysNum = calculateLeaveDays(leave.startDate, leave.endDate, true);
+                  const daysNum = leave.daysCount || 0;
                   return (
                     <tr key={leave.id} className="hover:bg-bg-slate transition-colors">
                       <td className="p-4 px-6 font-bold text-brand-blue">{formatDate(leave.submittedAt || leave.createdAt || leave.startDate)}</td>
@@ -295,6 +361,18 @@ const LeaveRequestPage = ({ employeeId, leaveBalance, onLeaveRequestSuccess }) =
                         <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border transition-all ${getStatusColor(leave.status)}`}>
                           {leave.status}
                         </span>
+                      </td>
+                      <td className="p-4 px-6 text-right">
+                        <button
+                          onClick={() => {
+                            setSelectedLeave(leave);
+                            setIsDetailsModalOpen(true);
+                          }}
+                          className="p-2 bg-brand-blue/5 text-brand-blue rounded-lg hover:bg-brand-blue hover:text-white transition-all shadow-sm"
+                          title="View Details"
+                        >
+                          <Eye size={16} />
+                        </button>
                       </td>
                     </tr>
                   );
@@ -342,15 +420,15 @@ const LeaveRequestPage = ({ employeeId, leaveBalance, onLeaveRequestSuccess }) =
                     <div className="grid grid-cols-3 gap-4 text-[10px] font-black uppercase tracking-widest text-brand-blue text-center">
                       <div>
                         <span className="opacity-40 block mb-1">Casual</span>
-                        <span className="text-lg">{leaveBalance.casualLeavesRemaining}</span>
+                        <span className="text-lg">{(leaveBalance.casualLeavesRemaining ?? 0).toFixed(2)}</span>
                       </div>
                       <div>
                         <span className="opacity-40 block mb-1 text-red-500/50">Sick</span>
-                        <span className="text-lg text-red-500">{leaveBalance.sickLeavesRemaining}</span>
+                        <span className="text-lg text-red-500">{(leaveBalance.sickLeavesRemaining ?? 0).toFixed(2)}</span>
                       </div>
                       <div>
                         <span className="opacity-40 block mb-1 text-emerald-500/50">Earned</span>
-                        <span className="text-lg text-emerald-500">{leaveBalance.earnedLeavesRemaining}</span>
+                        <span className="text-lg text-emerald-500">{(leaveBalance.earnedLeavesRemaining ?? 0).toFixed(2)}</span>
                       </div>
                     </div>
                   </div>
@@ -375,9 +453,9 @@ const LeaveRequestPage = ({ employeeId, leaveBalance, onLeaveRequestSuccess }) =
 
                   {/* Days Display (read-only placeholder) */}
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black text-brand-blue/40 uppercase tracking-widest block ml-1">Selected Days</label>
+                    <label className="text-[10px] font-black text-brand-blue/40 uppercase tracking-widest block ml-1">Total Duration</label>
                     <div className="w-full px-5 py-4 bg-bg-slate border-2 border-transparent rounded-2xl text-sm font-bold text-brand-blue shadow-sm">
-                      {formData.startDate && formData.endDate ? calculateLeaveDays(formData.startDate, formData.endDate) : 0} Days
+                      {formData.daysCount} Days
                     </div>
                   </div>
                 </div>
@@ -428,29 +506,73 @@ const LeaveRequestPage = ({ employeeId, leaveBalance, onLeaveRequestSuccess }) =
                   </div>
                 </div>
 
-                {/* Breakdown Summary */}
-                {formData.startDate && formData.endDate && (
-                  <div className="bg-bg-slate/50 border border-brand-blue/5 rounded-2xl p-4 space-y-3">
-                    <h4 className="text-[10px] font-black text-brand-blue/60 uppercase tracking-widest pl-1">Leave Breakdown</h4>
-                    <div className="space-y-2">
-                      {getDateBreakdown().map((item, idx) => (
-                        <div key={idx} className="flex items-center justify-between px-3 py-2 bg-white/60 rounded-xl shadow-sm border border-brand-blue/5">
-                          <span className="text-[11px] font-black text-brand-blue/70 uppercase w-20">{item.date}</span>
-                          <span className={`text-[11px] font-bold px-3 py-1 rounded-lg flex-1 text-right ${item.type === 'holiday' ? 'text-amber-600' :
-                              item.type === 'weekend' ? 'text-slate-400' :
-                                'text-indigo-600'
-                            }`}>
-                            {item.label}
-                          </span>
-                        </div>
-                      ))}
+                {/* Daily Breakdown Section */}
+                {formData.startDate && formData.endDate && Object.keys(formData.sessionData).length > 0 && (
+                  <div className="bg-bg-slate/30 border border-brand-blue/5 rounded-2xl overflow-hidden shadow-inner">
+                    <div className="bg-white/50 px-4 py-2 border-b border-brand-blue/5">
+                      <h4 className="text-[10px] font-black text-brand-blue/60 uppercase tracking-widest">Daily Breakdown</h4>
                     </div>
-                    <div className="pt-2 border-t border-brand-blue/5 flex justify-between items-center px-2">
-                      <span className="text-[11px] font-black text-brand-blue/80 uppercase">Total Leave Days</span>
-                      <span className="text-sm font-black text-brand-blue">{calculateLeaveDays(formData.startDate, formData.endDate)} Days</span>
+                    <div className="divide-y divide-brand-blue/5 max-h-[250px] overflow-y-auto custom-scrollbar">
+                      {Object.keys(formData.sessionData).map((date) => {
+                        const dateObj = new Date(date);
+                        const formattedDate = dateObj.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+                        const currentSession = formData.sessionData[date];
+
+                        return (
+                          <div key={date} className="p-3 flex items-center justify-between group hover:bg-white/40 transition-colors">
+                            <span className="text-[11px] font-bold text-brand-blue/70">{formattedDate}:</span>
+                            <div className="flex items-center gap-1.5 min-w-[280px] justify-end">
+                              {/* Full Day */}
+                              <label className={`flex items-center gap-1 cursor-pointer px-2 py-1 rounded-md transition-all ${currentSession === 'FULL' ? 'bg-brand-blue text-white' : 'hover:bg-brand-blue/5 text-brand-blue/40'}`}>
+                                <input
+                                  type="radio"
+                                  name={`session-${date}`}
+                                  value="FULL"
+                                  checked={currentSession === 'FULL'}
+                                  onChange={() => handleSessionChange(date, 'FULL')}
+                                  className="sr-only"
+                                />
+                                <span className="text-[9px] font-black uppercase">Full Day</span>
+                              </label>
+
+                              {/* Morning */}
+                              <label className={`flex items-center gap-1 cursor-pointer px-2 py-1 rounded-md transition-all ${currentSession === 'MORNING' ? 'bg-amber-500 text-white' : 'hover:bg-amber-500/5 text-brand-blue/40'}`}>
+                                <input
+                                  type="radio"
+                                  name={`session-${date}`}
+                                  value="MORNING"
+                                  checked={currentSession === 'MORNING'}
+                                  onChange={() => handleSessionChange(date, 'MORNING')}
+                                  className="sr-only"
+                                />
+                                <span className="text-[9px] font-black uppercase">Morning</span>
+                              </label>
+
+                              {/* Afternoon */}
+                              <label className={`flex items-center gap-1 cursor-pointer px-2 py-1 rounded-md transition-all ${currentSession === 'AFTERNOON' ? 'bg-indigo-500 text-white' : 'hover:bg-indigo-500/5 text-brand-blue/40'}`}>
+                                <input
+                                  type="radio"
+                                  name={`session-${date}`}
+                                  value="AFTERNOON"
+                                  checked={currentSession === 'AFTERNOON'}
+                                  onChange={() => handleSessionChange(date, 'AFTERNOON')}
+                                  className="sr-only"
+                                />
+                                <span className="text-[9px] font-black uppercase">Afternoon</span>
+                              </label>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <div className="bg-brand-blue/5 p-3 flex justify-between items-center border-t border-brand-blue/5">
+                      <span className="text-[10px] font-black text-brand-blue uppercase tracking-wider">Total Duration</span>
+                      <span className="text-xs font-black text-brand-blue">{formData.daysCount} Days</span>
                     </div>
                   </div>
                 )}
+
+
 
                 {/* Reason */}
                 <div className="space-y-2">
@@ -490,6 +612,12 @@ const LeaveRequestPage = ({ employeeId, leaveBalance, onLeaveRequestSuccess }) =
           </div>
         </div>
       )}
+
+      <LeaveDetailsModal
+        isOpen={isDetailsModalOpen}
+        onClose={() => setIsDetailsModalOpen(false)}
+        leave={selectedLeave}
+      />
     </div>
   );
 };

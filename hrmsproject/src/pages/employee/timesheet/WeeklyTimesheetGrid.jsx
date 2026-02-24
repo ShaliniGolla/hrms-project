@@ -35,22 +35,23 @@ const WeeklyTimesheetGrid = ({ weekData, onBack, onSave, employeeId, approvedLea
             }
             setDates(dateList);
 
+            // Initialize local data structures
+            const projects = {};
+            const swipes = Array(7).fill(null).map(() => ({ value: '', id: null }));
+            const holidayData = Array(7).fill(null).map(() => ({ value: '', id: null }));
+            const leavesS = Array(7).fill(null).map(() => ({ value: '', id: null }));
+            const leavesC = Array(7).fill(null).map(() => ({ value: '', id: null }));
+            const leavesE = Array(7).fill(null).map(() => ({ value: '', id: null }));
+
+            const weekDates = [];
+            let d = parseDateLocal(weekData.start);
+            for (let i = 0; i < 7; i++) {
+                weekDates.push(getLocalDateStr(d));
+                d.setDate(d.getDate() + 1);
+            }
+
             // Populate existing data if available
             if (weekData.entries && weekData.entries.length > 0) {
-                const projects = {};
-                const swipes = Array(7).fill(null).map(() => ({ value: '', id: null }));
-                const holidays = Array(7).fill(null).map(() => ({ value: '', id: null }));
-                const leavesS = Array(7).fill(null).map(() => ({ value: '', id: null }));
-                const leavesC = Array(7).fill(null).map(() => ({ value: '', id: null }));
-                const leavesE = Array(7).fill(null).map(() => ({ value: '', id: null }));
-
-                const weekDates = [];
-                let d = parseDateLocal(weekData.start);
-                for (let i = 0; i < 7; i++) {
-                    weekDates.push(getLocalDateStr(d));
-                    d.setDate(d.getDate() + 1);
-                }
-
                 weekData.entries.forEach(entry => {
                     const entryDateStr = getLocalDateStr(entry.date);
                     const dayIdx = weekDates.indexOf(entryDateStr);
@@ -76,7 +77,7 @@ const WeeklyTimesheetGrid = ({ weekData, onBack, onSave, employeeId, approvedLea
                         } else if (entry.category === 'TRUTIME') {
                             swipes[dayIdx] = { value: entry.totalHours.toString(), id: entry.id };
                         } else if (entry.category === 'HOLIDAY') {
-                            holidays[dayIdx] = { value: entry.totalHours.toString(), id: entry.id };
+                            holidayData[dayIdx] = { value: entry.totalHours.toString(), id: entry.id };
                         } else if (entry.category === 'LEAVE') {
                             if (entry.leaveType === 'S') leavesS[dayIdx] = { value: entry.totalHours.toString(), id: entry.id };
                             else if (entry.leaveType === 'C') leavesC[dayIdx] = { value: entry.totalHours.toString(), id: entry.id };
@@ -84,47 +85,54 @@ const WeeklyTimesheetGrid = ({ weekData, onBack, onSave, employeeId, approvedLea
                         }
                     }
                 });
+            }
 
-                // Auto-populate 8 hours for approved leaves
-                weekDates.forEach((ds, dayIdx) => {
-                    const gridDate = parseDateLocal(ds);
-                    gridDate.setHours(0, 0, 0, 0);
+            // Auto-populate 8 hours for approved leaves
+            weekDates.forEach((ds, dayIdx) => {
+                const gridDate = parseDateLocal(ds);
+                gridDate.setHours(0, 0, 0, 0);
 
-                    approvedLeaves.forEach(leave => {
-                        const start = parseDateLocal(leave.startDate);
-                        const end = parseDateLocal(leave.endDate);
-                        start.setHours(0, 0, 0, 0);
-                        end.setHours(0, 0, 0, 0);
+                if (isWeekend(gridDate)) return; // Skip weekends
 
-                        if (gridDate >= start && gridDate <= end) {
-                            if (leave.leaveType === 'SICK') {
-                                leavesS[dayIdx] = { ...leavesS[dayIdx], value: '8.00' };
-                            } else if (leave.leaveType === 'CASUAL') {
-                                leavesC[dayIdx] = { ...leavesC[dayIdx], value: '8.00' };
-                            } else if (leave.leaveType === 'EARNED') {
-                                leavesE[dayIdx] = { ...leavesE[dayIdx], value: '8.00' };
-                            }
+                approvedLeaves.forEach(leave => {
+                    const start = parseDateLocal(leave.startDate);
+                    const end = parseDateLocal(leave.endDate);
+                    start.setHours(0, 0, 0, 0);
+                    end.setHours(0, 0, 0, 0);
+
+                    if (gridDate >= start && gridDate <= end) {
+                        if (leave.leaveType === 'SICK' && !leavesS[dayIdx].value) {
+                            leavesS[dayIdx] = { ...leavesS[dayIdx], value: '8.00' };
+                        } else if (leave.leaveType === 'CASUAL' && !leavesC[dayIdx].value) {
+                            leavesC[dayIdx] = { ...leavesC[dayIdx], value: '8.00' };
+                        } else if (leave.leaveType === 'EARNED' && !leavesE[dayIdx].value) {
+                            leavesE[dayIdx] = { ...leavesE[dayIdx], value: '8.00' };
                         }
-                    });
-                });
-
-                // Auto-populate 8 hours for holidays
-                weekDates.forEach((ds, dayIdx) => {
-                    if (holidays.some(h => h.holidayDate === ds)) {
-                        holidaysRows[dayIdx] = { ...holidaysRows[dayIdx], value: '8.00' };
                     }
                 });
+            });
 
-                const projectRowsList = Object.values(projects);
-                if (projectRowsList.length > 0) setProjectRows(projectRowsList);
-                setTruTimeRows({ swipe: swipes });
-                setLeaveRows({
-                    holiday: holidaysRows,
-                    leaveS: leavesS,
-                    leaveC: leavesC,
-                    leaveE: leavesE
-                });
-            }
+            // Auto-populate 8 hours for holidays
+            weekDates.forEach((ds, dayIdx) => {
+                const gridDate = parseDateLocal(ds);
+                if (isWeekend(gridDate)) return; // Skip weekends
+
+                if (holidays.some(h => getLocalDateStr(h.holidayDate) === ds) && !holidayData[dayIdx].value) {
+                    holidayData[dayIdx] = { ...holidayData[dayIdx], value: '8.00' };
+                }
+            });
+
+            const projectRowsList = Object.values(projects);
+            if (projectRowsList.length > 0) setProjectRows(projectRowsList);
+            else setProjectRows([{ id: Date.now(), projectId: '', projectName: '', taskId: '', taskDesc: '', onsite: 'Offshore', billable: 'Billable', location: 'India', hours: Array(7).fill({ value: '', id: null }), comment: '' }]);
+
+            setTruTimeRows({ swipe: swipes });
+            setLeaveRows({
+                holiday: holidayData,
+                leaveS: leavesS,
+                leaveC: leavesC,
+                leaveE: leavesE
+            });
         }
     }, [weekData, approvedLeaves, holidays]);
 

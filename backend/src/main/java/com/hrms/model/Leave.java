@@ -43,6 +43,11 @@ public class Leave {
     
     private LocalDateTime reviewedAt;
     
+    private Double daysCount;
+    
+    @Column(columnDefinition = "TEXT")
+    private String sessionData;
+    
     @PrePersist
     protected void onCreate() {
         submittedAt = LocalDateTime.now();
@@ -71,4 +76,8 @@ public class Leave {
     public void setSubmittedAt(LocalDateTime submittedAt) { this.submittedAt = submittedAt; }
     public LocalDateTime getReviewedAt() { return reviewedAt; }
     public void setReviewedAt(LocalDateTime reviewedAt) { this.reviewedAt = reviewedAt; }
+    public Double getDaysCount() { return daysCount; }
+    public void setDaysCount(Double daysCount) { this.daysCount = daysCount; }
+    public String getSessionData() { return sessionData; }
+    public void setSessionData(String sessionData) { this.sessionData = sessionData; }
 }

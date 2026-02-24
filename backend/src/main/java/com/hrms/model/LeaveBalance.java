@@ -16,14 +16,14 @@ public class LeaveBalance {
     @JsonIgnore
     private Employee employee;
     
-    private Integer casualLeavesTotal = 0;
-    private Integer casualLeavesUsed = 0;
+    private Double casualLeavesTotal = 0.0;
+    private Double casualLeavesUsed = 0.0;
     
-    private Integer sickLeavesTotal = 0;
-    private Integer sickLeavesUsed = 0;
+    private Double sickLeavesTotal = 0.0;
+    private Double sickLeavesUsed = 0.0;
     
-    private Integer earnedLeavesTotal = 0;
-    private Integer earnedLeavesUsed = 0;
+    private Double earnedLeavesTotal = 0.0;
+    private Double earnedLeavesUsed = 0.0;
     
     private LocalDateTime lastUpdated;
     
@@ -54,64 +54,70 @@ public class LeaveBalance {
         this.employee = employee;
     }
     
-    public Integer getCasualLeavesTotal() {
+    public Double getCasualLeavesTotal() {
         return casualLeavesTotal;
     }
     
-    public void setCasualLeavesTotal(Integer casualLeavesTotal) {
+    public void setCasualLeavesTotal(Double casualLeavesTotal) {
         this.casualLeavesTotal = casualLeavesTotal;
     }
     
-    public Integer getCasualLeavesUsed() {
+    public Double getCasualLeavesUsed() {
         return casualLeavesUsed;
     }
     
-    public void setCasualLeavesUsed(Integer casualLeavesUsed) {
+    public void setCasualLeavesUsed(Double casualLeavesUsed) {
         this.casualLeavesUsed = casualLeavesUsed;
     }
     
-    public Integer getCasualLeavesRemaining() {
-        return casualLeavesTotal - casualLeavesUsed;
+    public Double getCasualLeavesRemaining() {
+        double total = casualLeavesTotal != null ? casualLeavesTotal : 0.0;
+        double used = casualLeavesUsed != null ? casualLeavesUsed : 0.0;
+        return Math.round((total - used) * 100.0) / 100.0;
     }
     
-    public Integer getSickLeavesTotal() {
+    public Double getSickLeavesTotal() {
         return sickLeavesTotal;
     }
     
-    public void setSickLeavesTotal(Integer sickLeavesTotal) {
+    public void setSickLeavesTotal(Double sickLeavesTotal) {
         this.sickLeavesTotal = sickLeavesTotal;
     }
     
-    public Integer getSickLeavesUsed() {
+    public Double getSickLeavesUsed() {
         return sickLeavesUsed;
     }
     
-    public void setSickLeavesUsed(Integer sickLeavesUsed) {
+    public void setSickLeavesUsed(Double sickLeavesUsed) {
         this.sickLeavesUsed = sickLeavesUsed;
     }
     
-    public Integer getSickLeavesRemaining() {
-        return sickLeavesTotal - sickLeavesUsed;
+    public Double getSickLeavesRemaining() {
+        double total = sickLeavesTotal != null ? sickLeavesTotal : 0.0;
+        double used = sickLeavesUsed != null ? sickLeavesUsed : 0.0;
+        return Math.round((total - used) * 100.0) / 100.0;
     }
     
-    public Integer getEarnedLeavesTotal() {
+    public Double getEarnedLeavesTotal() {
         return earnedLeavesTotal;
     }
     
-    public void setEarnedLeavesTotal(Integer earnedLeavesTotal) {
+    public void setEarnedLeavesTotal(Double earnedLeavesTotal) {
         this.earnedLeavesTotal = earnedLeavesTotal;
     }
     
-    public Integer getEarnedLeavesUsed() {
+    public Double getEarnedLeavesUsed() {
         return earnedLeavesUsed;
     }
     
-    public void setEarnedLeavesUsed(Integer earnedLeavesUsed) {
+    public void setEarnedLeavesUsed(Double earnedLeavesUsed) {
         this.earnedLeavesUsed = earnedLeavesUsed;
     }
     
-    public Integer getEarnedLeavesRemaining() {
-        return earnedLeavesTotal - earnedLeavesUsed;
+    public Double getEarnedLeavesRemaining() {
+        double total = earnedLeavesTotal != null ? earnedLeavesTotal : 0.0;
+        double used = earnedLeavesUsed != null ? earnedLeavesUsed : 0.0;
+        return Math.round((total - used) * 100.0) / 100.0;
     }
     
     public LocalDateTime getLastUpdated() {

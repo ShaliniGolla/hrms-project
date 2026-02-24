@@ -47,42 +47,66 @@ public class EmailService {
     }
 
     public void sendLeaveRequestEmail(String[] to, String[] cc, String employeeName, String leaveType, String startDate,
-            String endDate, String reason, String role) {
+            String endDate, Double daysCount, String reason, String role, String breakdown, Double casualBal, Double sickBal, Double earnedBal) {
         String subject = "Leave Request Submitted: " + employeeName;
-        String body = String.format(
-                "Hello,\n\n" +
-                        "A leave request has been submitted with the following details:\n\n" +
-                        "Employee Name: %s\n" +
-                        "Role:          %s\n" +
-                        "Leave Type:    %s\n" +
-                        "Start Date:    %s\n" +
-                        "End Date:      %s\n" +
-                        "Reason:        %s\n\n" +
-                        "Please log in to the HRMS portal to take necessary action.\n\n" +
-                        "Best regards,\n" +
-                        "HRMS Notification System",
-                employeeName, role, leaveType, startDate, endDate, reason);
-        sendEmail(to, cc, subject, body);
+        StringBuilder body = new StringBuilder();
+        body.append("Hello,\n\n");
+        body.append("A leave request has been submitted with the following details:\n\n");
+        body.append("Employee Name: ").append(employeeName).append("\n");
+        body.append("Role:          ").append(role).append("\n");
+        body.append("Leave Type:    ").append(leaveType).append("\n");
+        body.append(String.format("Total Days:    %.1f\n", daysCount));
+        body.append("Start Date:    ").append(startDate).append("\n");
+        body.append("End Date:      ").append(endDate).append("\n");
+        
+        if (breakdown != null && !breakdown.isEmpty()) {
+            body.append("\nLeave Breakdown:\n").append(breakdown).append("\n");
+        }
+        
+        body.append("Reason:        ").append(reason).append("\n\n");
+        body.append("Current Available Balances (Post-Request):\n");
+        body.append(String.format(" - Casual Leaves: %.2f\n", casualBal));
+        body.append(String.format(" - Sick Leaves:   %.2f\n", sickBal));
+        body.append(String.format(" - Earned Leaves: %.2f\n\n", earnedBal));
+        body.append("Please log in to the HRMS portal to take necessary action.\n\n");
+        body.append("Best regards,\n");
+        body.append("HRMS Notification System");
+        
+        sendEmail(to, cc, subject, body.toString());
     }
 
     public void sendLeaveStatusEmail(String[] to, String[] cc, String employeeName, String leaveType, String startDate,
-            String endDate, String status, String reason, String reviewerName) {
+            String endDate, Double daysCount, String status, String reason, String reviewerName, String breakdown, Double casualBal, Double sickBal, Double earnedBal) {
         String subject = "Leave Request " + status + ": " + employeeName;
-        String body = String.format(
-                "Hello %s,\n\n" +
-                        "Your leave request has been %s.\n\n" +
-                        "Details:\n" +
-                        "--------------------------\n" +
-                        "Employee Name: %s\n" +
-                        "Leave Type:    %s\n" +
-                        "Leave Dates:   %s to %s\n" +
-                        "Status:        %s\n" +
-                        "Approver:      %s\n" +
-                        (reason != null && !reason.isEmpty() ? "Comments:      " + reason + "\n" : "") +
-                        "--------------------------\n\n" +
-                        "Best regards,\n" +
-                        "HRMS Notification System",
-                employeeName, status.toLowerCase(), employeeName, leaveType, startDate, endDate, status, reviewerName);
-        sendEmail(to, cc, subject, body);
+        StringBuilder body = new StringBuilder();
+        body.append("Hello ").append(employeeName).append(",\n\n");
+        body.append("Your leave request has been ").append(status.toLowerCase()).append(".\n\n");
+        body.append("Details:\n");
+        body.append("--------------------------\n");
+        body.append("Employee Name: ").append(employeeName).append("\n");
+        body.append("Leave Type:    ").append(leaveType).append("\n");
+        body.append(String.format("Total Days:    %.1f\n", daysCount));
+        body.append("Leave Dates:   ").append(startDate).append(" to ").append(endDate).append("\n");
+        
+        if (breakdown != null && !breakdown.isEmpty()) {
+            body.append("\nLeave Breakdown:\n").append(breakdown).append("\n");
+        }
+        
+        body.append("Status:        ").append(status).append("\n");
+        body.append("Approver:      ").append(reviewerName).append("\n");
+        
+        if (reason != null && !reason.isEmpty()) {
+            body.append("Comments:      ").append(reason).append("\n");
+        }
+        
+        body.append("--------------------------\n\n");
+        body.append("Available Balances:\n");
+        body.append(String.format(" - Casual Leaves: %.2f\n", casualBal));
+        body.append(String.format(" - Sick Leaves:   %.2f\n", sickBal));
+        body.append(String.format(" - Earned Leaves: %.2f\n\n", earnedBal));
+        body.append("Best regards,\n");
+        body.append("HRMS Notification System");
+        
+        sendEmail(to, cc, subject, body.toString());
     }
 }

@@ -3,6 +3,8 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../../components/Sidebar";
 import { getHrNavItems } from "../../utils/hrNav";
+import LeaveDetailsModal from "../../components/LeaveDetailsModal";
+import { Eye } from "lucide-react";
 
 export default function HrManagerLeaves() {
     const [activeTab, setActiveTab] = useState("leaves");
@@ -12,6 +14,8 @@ export default function HrManagerLeaves() {
     const [leavesFilter, setLeavesFilter] = useState("");
     const [employees, setEmployees] = useState([]);
     const [leaveRoleFilter, setLeaveRoleFilter] = useState("ALL");
+    const [selectedLeave, setSelectedLeave] = useState(null);
+    const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -281,7 +285,7 @@ export default function HrManagerLeaves() {
                                                     </td>
                                                     <td className="p-5 px-6 text-center">
                                                         <span className="bg-brand-blue/5 text-brand-blue px-3 py-1 rounded-lg font-black text-[11px]">
-                                                            {calculateLeaveDays(leave.startDate, leave.endDate)}
+                                                            {leave.daysCount != null ? leave.daysCount.toFixed(1) : calculateLeaveDays(leave.startDate, leave.endDate)}
                                                         </span>
                                                     </td>
                                                     <td className="p-5 px-6 text-center">
@@ -295,34 +299,34 @@ export default function HrManagerLeaves() {
                                                         </span>
                                                     </td>
                                                     <td className="p-5 px-8 text-right">
-                                                        {leave.status === 'PENDING' ? (
-                                                            <div className="flex justify-end gap-2">
-                                                                <button
-                                                                    onClick={() => handleApprove(leave.id)}
-                                                                    className="px-3 py-1 bg-emerald-500 text-white rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-emerald-600 transition-all shadow-md active:scale-95"
-                                                                >
-                                                                    Approve
-                                                                </button>
-                                                                <button
-                                                                    onClick={() => handleReject(leave.id)}
-                                                                    className="px-3 py-1 bg-red-500 text-white rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-red-600 transition-all shadow-md active:scale-95"
-                                                                >
-                                                                    Reject
-                                                                </button>
-                                                            </div>
-                                                        ) : (
-                                                            <div className="flex flex-col items-end">
-                                                                <span className="text-[8px] font-black text-brand-blue/30 uppercase tracking-widest">
-                                                                    By: {leave.approvedBy || "System"}
-                                                                </span>
-                                                                <span className="text-[8px] font-bold text-brand-blue/20 uppercase tracking-widest leading-none mt-0.5">
-                                                                    {formatDateTime(leave.reviewedAt)}
-                                                                </span>
-                                                                {leave.status === 'REJECTED' && leave.rejectionReason && (
-                                                                    <span className="text-[9px] text-red-400 font-bold truncate max-w-[150px] mt-1">{leave.rejectionReason}</span>
-                                                                )}
-                                                            </div>
-                                                        )}
+                                                        <div className="flex justify-end gap-2">
+                                                            <button
+                                                                onClick={() => {
+                                                                    setSelectedLeave(leave);
+                                                                    setIsDetailsModalOpen(true);
+                                                                }}
+                                                                className="p-2 bg-brand-blue/5 text-brand-blue rounded-lg hover:bg-brand-blue hover:text-white transition-all shadow-sm"
+                                                                title="View Details"
+                                                            >
+                                                                <Eye size={16} />
+                                                            </button>
+                                                            {leave.status === 'PENDING' && (
+                                                                <>
+                                                                    <button
+                                                                        onClick={() => handleApprove(leave.id)}
+                                                                        className="px-3 py-1 bg-emerald-500 text-white rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-emerald-600 transition-all shadow-md active:scale-95"
+                                                                    >
+                                                                        Approve
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={() => handleReject(leave.id)}
+                                                                        className="px-3 py-1 bg-red-500 text-white rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-red-600 transition-all shadow-md active:scale-95"
+                                                                    >
+                                                                        Reject
+                                                                    </button>
+                                                                </>
+                                                            )}
+                                                        </div>
                                                     </td>
                                                 </tr>
                                             ))
@@ -334,6 +338,12 @@ export default function HrManagerLeaves() {
                     </div>
                 </div>
             </main>
+
+            <LeaveDetailsModal
+                isOpen={isDetailsModalOpen}
+                onClose={() => setIsDetailsModalOpen(false)}
+                leave={selectedLeave}
+            />
         </div>
     );
 }

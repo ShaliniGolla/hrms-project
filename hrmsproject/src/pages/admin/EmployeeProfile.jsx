@@ -800,12 +800,12 @@ export default function EmployeeProfile() {
                               </div>
                               <div className="flex items-end justify-between">
                                 <div>
-                                  <span className="text-3xl font-bold text-brand-blue">{leave.total - leave.used}</span>
+                                  <span className="text-3xl font-bold text-brand-blue">{(leave.total - leave.used).toFixed(2)}</span>
                                   <span className="text-xs font-bold text-brand-blue/40 ml-1">Days left</span>
                                 </div>
                                 <div className="text-right">
-                                  <p className="text-[10px] font-bold text-brand-blue/30 uppercase tracking-widest">Total: {leave.total}</p>
-                                  <p className="text-[10px] font-bold text-brand-blue/30 uppercase tracking-widest">Used: {leave.used}</p>
+                                  <p className="text-[10px] font-bold text-brand-blue/30 uppercase tracking-widest">Total: {leave.total.toFixed(2)}</p>
+                                  <p className="text-[10px] font-bold text-brand-blue/30 uppercase tracking-widest">Used: {leave.used.toFixed(2)}</p>
                                 </div>
                               </div>
                               <div className="w-full bg-gray-200 rounded-full h-1.5 overflow-hidden">

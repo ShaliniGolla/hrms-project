@@ -31,19 +31,18 @@ public class LeaveBalanceService {
         Employee employee = employeeRepository.findById(employeeId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Employee not found"));
 
-        // Check if balance already exists
         if (leaveBalanceRepository.findByEmployeeId(employeeId).isPresent()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Leave balance already exists for this employee");
         }
 
         LeaveBalance balance = new LeaveBalance();
         balance.setEmployee(employee);
-        balance.setCasualLeavesTotal(0);
-        balance.setCasualLeavesUsed(0);
-        balance.setSickLeavesTotal(0);
-        balance.setSickLeavesUsed(0);
-        balance.setEarnedLeavesTotal(0);
-        balance.setEarnedLeavesUsed(0);
+        balance.setCasualLeavesTotal(0.0);
+        balance.setCasualLeavesUsed(0.0);
+        balance.setSickLeavesTotal(0.0);
+        balance.setSickLeavesUsed(0.0);
+        balance.setEarnedLeavesTotal(0.0);
+        balance.setEarnedLeavesUsed(0.0);
 
         LeaveBalance saved = leaveBalanceRepository.save(balance);
         return refreshLeaveBalance(saved);
@@ -56,41 +55,55 @@ public class LeaveBalanceService {
                 .orElse(null);
         
         if (detail == null || detail.getJoiningDate() == null) {
-            // No joining date, keep at 0
             return balance;
         }
 
         LocalDate now = LocalDate.now();
         LocalDate joiningDate = detail.getJoiningDate();
-        
-        long monthsSinceJoining = ChronoUnit.MONTHS.between(joiningDate, now);
-        
-        // Rules:
-        // 1. First 6 months: 0
-        // 2. After 6 months: 6 Sick, 10 Casual
-        // 3. After 1 year: +1 Earned per month (starting from month 13)
-        
-        if (monthsSinceJoining < 6) {
-            balance.setSickLeavesTotal(0);
-            balance.setCasualLeavesTotal(0);
-            balance.setEarnedLeavesTotal(0);
+        LocalDate eligibilityDate = joiningDate.plusMonths(6);
+        LocalDate elEligibilityDate = joiningDate.plusYears(1);
+
+        // 1. Handle Year Reset (Jan 1) for Casual and Sick Leaves
+        if (balance.getLastUpdated() != null && balance.getLastUpdated().getYear() < now.getYear()) {
+            balance.setCasualLeavesUsed(0.0);
+            balance.setSickLeavesUsed(0.0);
+            // Earned Leave used is NOT reset (carry forward)
+        }
+
+        // 2. Probation check
+        if (now.isBefore(eligibilityDate)) {
+            balance.setCasualLeavesTotal(0.0);
+            balance.setSickLeavesTotal(0.0);
+            balance.setEarnedLeavesTotal(0.0);
         } else {
-            balance.setSickLeavesTotal(6);
-            balance.setCasualLeavesTotal(10);
-            
-            if (monthsSinceJoining >= 12) {
-                // months 12, 13, 14...
-                // At exactly 12 months, do they get 1? 
-                // "after one year from joining date keep adding 1 earned leave per month"
-                // Let's assume anniversary month (12) is the first month they get 1.
-                int earned = (int) (monthsSinceJoining - 11); 
-                balance.setEarnedLeavesTotal(earned);
+            // 3. Casual and Sick Leave Accrual (Pro-rata)
+            LocalDate startOfThisYear = LocalDate.of(now.getYear(), 1, 1);
+            LocalDate clAccrualStart = eligibilityDate.isAfter(startOfThisYear) ? eligibilityDate : startOfThisYear;
+
+            if (!now.isBefore(clAccrualStart)) {
+                // Number of months since accrual start in THIS YEAR
+                long monthsEligibleThisYear = ChronoUnit.MONTHS.between(clAccrualStart.withDayOfMonth(1), now.withDayOfMonth(1)) + 1;
+                balance.setCasualLeavesTotal(round(Math.min(10.0, monthsEligibleThisYear * (10.0 / 12.0))));
+                balance.setSickLeavesTotal(round(Math.min(6.0, monthsEligibleThisYear * 0.5)));
             } else {
-                balance.setEarnedLeavesTotal(0);
+                balance.setCasualLeavesTotal(0.0);
+                balance.setSickLeavesTotal(0.0);
+            }
+
+            // 4. Earned Leave (EL) accrual (Cumulative since 1 year completion)
+            if (!now.isBefore(elEligibilityDate)) {
+                long elMonths = ChronoUnit.MONTHS.between(elEligibilityDate.withDayOfMonth(1), now.withDayOfMonth(1)) + 1;
+                balance.setEarnedLeavesTotal(round(elMonths * 1.0));
+            } else {
+                balance.setEarnedLeavesTotal(0.0);
             }
         }
         
         return leaveBalanceRepository.save(balance);
+    }
+
+    private double round(double value) {
+        return Math.round(value * 100.0) / 100.0;
     }
 
     public LeaveBalance getLeaveBalance(Long employeeId) {
@@ -99,9 +112,9 @@ public class LeaveBalanceService {
         return refreshLeaveBalance(balance);
     }
 
-    public int getRemainingLeaves(Long employeeId) {
+    public Double getRemainingLeaves(Long employeeId) {
         LeaveBalance balance = getLeaveBalance(employeeId);
-        return balance.getCasualLeavesRemaining() + balance.getSickLeavesRemaining()
-                + balance.getEarnedLeavesRemaining();
+        return round(balance.getCasualLeavesRemaining() + balance.getSickLeavesRemaining()
+                + balance.getEarnedLeavesRemaining());
     }
 }

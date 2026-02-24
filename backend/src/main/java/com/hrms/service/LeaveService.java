@@ -8,6 +8,7 @@ import com.hrms.model.LeaveBalance;
 import com.hrms.model.LeaveStatus;
 import com.hrms.model.LeaveType;
 import com.hrms.model.User;
+import com.hrms.model.CompanyDetail;
 import com.hrms.model.EmployeeReporting;
 import com.hrms.repository.EmployeeRepository;
 import com.hrms.repository.LeaveRepository;
@@ -18,6 +19,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -54,6 +58,8 @@ public class LeaveService {
 
     @Autowired
     private com.hrms.repository.HolidayRepository holidayRepository;
+
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     // Fetch all leaves for team members of a manager
     public List<Leave> getTeamLeavesByManagerId(Long managerId) {
@@ -96,11 +102,35 @@ public class LeaveService {
         Employee employee = employeeRepository.findById(dto.getEmployeeId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Employee not found"));
 
+        CompanyDetail detail = companyDetailRepository.findByEmployee_Id(employee.getId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Company details not found"));
+
+        if (detail.getJoiningDate() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Employee joining date is missing");
+        }
+
+        LocalDate now = LocalDate.now();
+        LocalDate eligibilityDateStage1 = detail.getJoiningDate().plusMonths(6);
+        LocalDate elEligibilityDate = detail.getJoiningDate().plusYears(1);
+
+        // 1. First 6 months probation (No leave allowed)
+        if (now.isBefore(eligibilityDateStage1)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, 
+                "Leave is not allowed during the first 6 months of service (Probation). Eligibility starts on " + eligibilityDateStage1);
+        }
+
         LeaveBalance balance = leaveBalanceRepository.findByEmployeeId(dto.getEmployeeId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Leave balance not found"));
 
         LeaveType leaveType = LeaveType.valueOf(dto.getLeaveType().toUpperCase());
-        int daysRequested = calculateLeaveDays(dto.getStartDate(), dto.getEndDate());
+        
+        // 2. Earned Leave eligibility check (1 year)
+        if (leaveType == LeaveType.EARNED && now.isBefore(elEligibilityDate)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, 
+                "Earned Leave eligibility starts only after 1 year of service. Your EL starts on " + elEligibilityDate);
+        }
+
+        double daysRequested = dto.getDaysCount() != null ? dto.getDaysCount() : 0.0;
 
         // Check if employee has sufficient balance
         if (!hassufficientBalance(balance, leaveType, daysRequested)) {
@@ -114,6 +144,15 @@ public class LeaveService {
         leave.setLeaveType(leaveType);
         leave.setReason(dto.getReason());
         leave.setStatus(LeaveStatus.PENDING);
+        leave.setDaysCount(daysRequested);
+        
+        try {
+            if (dto.getSessionData() != null) {
+                leave.setSessionData(objectMapper.writeValueAsString(dto.getSessionData()));
+            }
+        } catch (JsonProcessingException e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to process session data");
+        }
 
         Leave saved = leaveRepository.save(leave);
 
@@ -197,9 +236,16 @@ public class LeaveService {
             String[] toArr = to.stream().distinct().toArray(String[]::new);
             String[] ccArr = cc.stream().distinct().toArray(String[]::new);
 
+            String breakdown = formatBreakdown(leave);
+            
+            LeaveBalance balance = leaveBalanceRepository.findByEmployeeId(employee.getId()).orElse(null);
+            Double cBal = balance != null ? balance.getCasualLeavesRemaining() : 0.0;
+            Double sBal = balance != null ? balance.getSickLeavesRemaining() : 0.0;
+            Double eBal = balance != null ? balance.getEarnedLeavesRemaining() : 0.0;
+
             if (toArr.length > 0) {
-                emailService.sendLeaveRequestEmail(toArr, ccArr, employeeName, leaveType, startDate, endDate, reason,
-                        role);
+                emailService.sendLeaveRequestEmail(toArr, ccArr, employeeName, leaveType, startDate, endDate, leave.getDaysCount(), reason,
+                        role, breakdown, cBal, sBal, eBal);
             }
         } catch (Exception e) {
             System.err.println("Failed to send leave request emails: " + e.getMessage());
@@ -334,6 +380,13 @@ public class LeaveService {
             String[] toArr = to.stream().distinct().toArray(String[]::new);
             String[] ccArr = cc.stream().distinct().toArray(String[]::new);
 
+            String breakdown = formatBreakdown(leave);
+            
+            LeaveBalance balance = leaveBalanceRepository.findByEmployeeId(employee.getId()).orElse(null);
+            Double cBal = balance != null ? balance.getCasualLeavesRemaining() : 0.0;
+            Double sBal = balance != null ? balance.getSickLeavesRemaining() : 0.0;
+            Double eBal = balance != null ? balance.getEarnedLeavesRemaining() : 0.0;
+
             emailService.sendLeaveStatusEmail(
                     toArr,
                     ccArr,
@@ -341,16 +394,19 @@ public class LeaveService {
                     leave.getLeaveType().name(),
                     leave.getStartDate().toString(),
                     leave.getEndDate().toString(),
+                    leave.getDaysCount(),
                     status,
                     reason,
-                    reviewerName);
+                    reviewerName,
+                    breakdown,
+                    cBal, sBal, eBal);
         } catch (Exception e) {
             System.err.println("Failed to send leave status email: " + e.getMessage());
             e.printStackTrace();
         }
     }
 
-    private boolean hassufficientBalance(LeaveBalance balance, LeaveType leaveType, int daysRequested) {
+    private boolean hassufficientBalance(LeaveBalance balance, LeaveType leaveType, double daysRequested) {
         return switch (leaveType) {
             case CASUAL -> balance.getCasualLeavesRemaining() >= daysRequested;
             case SICK -> balance.getSickLeavesRemaining() >= daysRequested;
@@ -358,51 +414,59 @@ public class LeaveService {
         };
     }
 
-    private int calculateLeaveDays(LocalDate startDate, LocalDate endDate) {
+    private double calculateLeaveDays(LocalDate startDate, LocalDate endDate, Boolean startHalf, Boolean endHalf) {
         if (startDate == null || endDate == null)
             return 0;
         
-        // Fetch all holidays for the years involved (usually just one year, maybe two)
-        int startYear = startDate.getYear();
-        int endYear = endDate.getYear();
-        
+        // Fetch all holidays
         List<String> holidayDates = holidayRepository.findAll().stream()
                 .map(com.hrms.model.Holiday::getHolidayDate)
                 .filter(java.util.Objects::nonNull)
                 .map(String::trim)
                 .collect(Collectors.toList());
 
-        int days = 0;
+        double totalDays = 0;
         for (LocalDate date = startDate; !date.isAfter(endDate); date = date.plusDays(1)) {
             boolean isWeekend = date.getDayOfWeek() == java.time.DayOfWeek.SATURDAY
                     || date.getDayOfWeek() == java.time.DayOfWeek.SUNDAY;
             
-            String dateStr = date.toString(); // YYYY-MM-DD
+            String dateStr = date.toString();
             boolean isHoliday = holidayDates.contains(dateStr);
             
-            if (!isWeekend && !isHoliday) {
-                days++;
+            if (isWeekend || isHoliday) {
+                continue;
+            }
+
+            if (date.equals(startDate) && date.equals(endDate)) {
+                // If both are checked for the same day, it's 0.5. If either is, it's 0.5.
+                totalDays += (startHalf != null && startHalf) || (endHalf != null && endHalf) ? 0.5 : 1.0;
+            } else if (date.equals(startDate) && startHalf != null && startHalf) {
+                totalDays += 0.5;
+            } else if (date.equals(endDate) && endHalf != null && endHalf) {
+                totalDays += 0.5;
+            } else {
+                totalDays += 1.0;
             }
         }
-        return days;
+        return totalDays;
     }
 
     private void updateLeaveBalance(Leave leave, boolean deduct) {
         LeaveBalance balance = leaveBalanceRepository.findByEmployeeId(leave.getEmployee().getId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Leave balance not found"));
 
-        int days = calculateLeaveDays(leave.getStartDate(), leave.getEndDate());
-        int change = deduct ? days : -days;
+        double days = leave.getDaysCount() != null ? leave.getDaysCount() : 0.0;
+        double change = deduct ? days : -days;
 
         switch (leave.getLeaveType()) {
             case CASUAL:
-                balance.setCasualLeavesUsed(Math.max(0, balance.getCasualLeavesUsed() + change));
+                balance.setCasualLeavesUsed(Math.max(0.0, balance.getCasualLeavesUsed() + change));
                 break;
             case SICK:
-                balance.setSickLeavesUsed(Math.max(0, balance.getSickLeavesUsed() + change));
+                balance.setSickLeavesUsed(Math.max(0.0, balance.getSickLeavesUsed() + change));
                 break;
             case EARNED:
-                balance.setEarnedLeavesUsed(Math.max(0, balance.getEarnedLeavesUsed() + change));
+                balance.setEarnedLeavesUsed(Math.max(0.0, balance.getEarnedLeavesUsed() + change));
                 break;
         }
 
@@ -453,6 +517,53 @@ public class LeaveService {
         }
     }
 
+    private String formatBreakdown(Leave leave) {
+        if (leave == null || leave.getStartDate() == null || leave.getEndDate() == null) return "";
+        
+        Map<String, String> sessionData = new HashMap<>();
+        try {
+            if (leave.getSessionData() != null && !leave.getSessionData().isEmpty()) {
+                sessionData = objectMapper.readValue(leave.getSessionData(), new TypeReference<Map<String, String>>() {});
+            }
+        } catch (Exception e) {
+            System.err.println("Failed to parse session data: " + e.getMessage());
+        }
+
+        List<String> holidayDates = holidayRepository.findAll().stream()
+                .map(com.hrms.model.Holiday::getHolidayDate)
+                .filter(java.util.Objects::nonNull)
+                .map(String::trim)
+                .collect(Collectors.toList());
+
+        StringBuilder sb = new StringBuilder();
+        for (LocalDate date = leave.getStartDate(); !date.isAfter(leave.getEndDate()); date = date.plusDays(1)) {
+            String dateStr = date.toString();
+            sb.append(" - ").append(dateStr).append(": ");
+            
+            boolean isWeekend = date.getDayOfWeek() == java.time.DayOfWeek.SATURDAY
+                    || date.getDayOfWeek() == java.time.DayOfWeek.SUNDAY;
+            boolean isHoliday = holidayDates.contains(dateStr);
+
+            if (isHoliday) {
+                sb.append("Public Holiday");
+            } else if (isWeekend) {
+                sb.append("Weekend");
+            } else {
+                String session = sessionData.get(dateStr);
+                if (session != null) {
+                    if (session.equalsIgnoreCase("FULL")) sb.append("Full Day");
+                    else if (session.equalsIgnoreCase("MORNING")) sb.append("Morning (0.5)");
+                    else if (session.equalsIgnoreCase("AFTERNOON")) sb.append("Afternoon (0.5)");
+                    else sb.append(session);
+                } else {
+                    sb.append("—");
+                }
+            }
+            sb.append("\n");
+        }
+        return sb.toString();
+    }
+
     public LeaveDTO convertToDTO(Leave leave) {
         LeaveDTO dto = new LeaveDTO();
         dto.setId(leave.getId());
@@ -479,6 +590,14 @@ public class LeaveService {
             dto.setApprovedBy(fullName != null ? fullName : leave.getApprovedBy().getUsername());
         }
         dto.setReviewedAt(leave.getReviewedAt());
+        dto.setDaysCount(leave.getDaysCount());
+        
+        try {
+            if (leave.getSessionData() != null) {
+                dto.setSessionData(objectMapper.readValue(leave.getSessionData(), new TypeReference<Map<String, String>>() {}));
+            }
+        } catch (JsonProcessingException ignored) {
+        }
 
         // Populate leave balance
         leaveBalanceRepository.findByEmployeeId(leave.getEmployee().getId()).ifPresent(balance -> {
