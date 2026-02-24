@@ -87,7 +87,7 @@ const WeeklyTimesheetGrid = ({ weekData, onBack, onSave, employeeId, approvedLea
                 });
             }
 
-            // Auto-populate 8 hours for approved leaves
+            // Auto-populate 4 or 8 hours for approved leaves
             weekDates.forEach((ds, dayIdx) => {
                 const gridDate = parseDateLocal(ds);
                 gridDate.setHours(0, 0, 0, 0);
@@ -101,12 +101,20 @@ const WeeklyTimesheetGrid = ({ weekData, onBack, onSave, employeeId, approvedLea
                     end.setHours(0, 0, 0, 0);
 
                     if (gridDate >= start && gridDate <= end) {
+                        let hoursAuto = "8.00";
+                        if (leave.sessionData && leave.sessionData[ds]) {
+                            const session = leave.sessionData[ds];
+                            if (session === 'MORNING' || session === 'AFTERNOON') {
+                                hoursAuto = "4.00";
+                            }
+                        }
+
                         if (leave.leaveType === 'SICK' && !leavesS[dayIdx].value) {
-                            leavesS[dayIdx] = { ...leavesS[dayIdx], value: '8.00' };
+                            leavesS[dayIdx] = { ...leavesS[dayIdx], value: hoursAuto };
                         } else if (leave.leaveType === 'CASUAL' && !leavesC[dayIdx].value) {
-                            leavesC[dayIdx] = { ...leavesC[dayIdx], value: '8.00' };
+                            leavesC[dayIdx] = { ...leavesC[dayIdx], value: hoursAuto };
                         } else if (leave.leaveType === 'EARNED' && !leavesE[dayIdx].value) {
-                            leavesE[dayIdx] = { ...leavesE[dayIdx], value: '8.00' };
+                            leavesE[dayIdx] = { ...leavesE[dayIdx], value: hoursAuto };
                         }
                     }
                 });
@@ -186,47 +194,19 @@ const WeeklyTimesheetGrid = ({ weekData, onBack, onSave, employeeId, approvedLea
         return holidays.some(h => h.holidayDate === ds);
     };
 
-    const isApprovedLeaveDay = (dayIdx) => {
-        if (!dates[dayIdx]) return false;
-        const gridDate = parseDateLocal(dates[dayIdx]);
-        gridDate.setHours(0, 0, 0, 0);
 
-        return approvedLeaves.some(leave => {
-            const start = parseDateLocal(leave.startDate);
-            const end = parseDateLocal(leave.endDate);
-            start.setHours(0, 0, 0, 0);
-            end.setHours(0, 0, 0, 0);
-            return gridDate >= start && gridDate <= end;
-        });
-    };
-
-    const hasDayConflict = (dayIdx, category, identifier) => {
-        // Check Projects
-        for (let i = 0; i < projectRows.length; i++) {
-            if (category === 'PROJECT' && i === identifier) continue;
-            if (parseFloat(projectRows[i].hours[dayIdx].value) > 0) return true;
-        }
-        // Check TruTime
-        if (category !== 'TRUTIME' && parseFloat(truTimeRows.swipe[dayIdx].value) > 0) return true;
-        // Check Holiday
-        if (category !== 'HOLIDAY' && parseFloat(leaveRows.holiday[dayIdx].value) > 0) return true;
-        // Check Leaves
-        if (category !== 'LEAVE_S' && parseFloat(leaveRows.leaveS[dayIdx].value) > 0) return true;
-        if (category !== 'LEAVE_C' && parseFloat(leaveRows.leaveC[dayIdx].value) > 0) return true;
-        if (category !== 'LEAVE_E' && parseFloat(leaveRows.leaveE[dayIdx].value) > 0) return true;
-
-        return false;
-    };
 
     const handleHourChange = (rowIndex, dayIndex, value) => {
-        const numVal = parseFloat(value);
-        if (numVal > 0 && hasDayConflict(dayIndex, 'PROJECT', rowIndex)) {
-            toast.warning("Only one row can have data for a specific day");
-            return;
-        }
+        // Validation removed to allow "two entries in single column" (e.g. 4h Leave + 4h Work)
         const updated = [...projectRows];
         updated[rowIndex].hours[dayIndex] = { ...updated[rowIndex].hours[dayIndex], value };
         setProjectRows(updated);
+    };
+
+    const handleLeaveHourChange = (typeKey, dayIndex, value) => {
+        const updated = { ...leaveRows, [typeKey]: [...leaveRows[typeKey]] };
+        updated[typeKey][dayIndex] = { ...updated[typeKey][dayIndex], value };
+        setLeaveRows(updated);
     };
 
     const calculateRowTotal = (hours) => {
@@ -446,7 +426,7 @@ const WeeklyTimesheetGrid = ({ weekData, onBack, onSave, employeeId, approvedLea
                                             <input
                                                 type="text"
                                                 value={h.value}
-                                                disabled={weekend || readOnly || isApprovedLeaveDay(i) || isHolidayDay(i)}
+                                                disabled={weekend || readOnly || isHolidayDay(i)}
                                                 onChange={(e) => handleHourChange(index, i, e.target.value)}
                                                 className={`w-full p-2 text-[11px] text-center border border-transparent hover:border-slate-200 focus:border-indigo-500 rounded bg-transparent focus:bg-white outline-none font-bold ${weekend || isHolidayDay(i) ? 'text-slate-400 cursor-not-allowed' : 'text-slate-700'}`}
                                             />
@@ -502,14 +482,9 @@ const WeeklyTimesheetGrid = ({ weekData, onBack, onSave, employeeId, approvedLea
                                         <input
                                             type="text"
                                             value={h.value}
-                                            disabled={weekend || readOnly || isApprovedLeaveDay(i) || isHolidayDay(i)}
+                                            disabled={weekend || readOnly || isHolidayDay(i)}
                                             onChange={(e) => {
                                                 const val = e.target.value;
-                                                const numVal = parseFloat(val);
-                                                if (numVal > 0 && hasDayConflict(i, 'TRUTIME', null)) {
-                                                    toast.warning("Only one row can have data for a specific day");
-                                                    return;
-                                                }
                                                 const updated = { ...truTimeRows, swipe: [...truTimeRows.swipe] };
                                                 updated.swipe[i] = { ...updated.swipe[i], value: val };
                                                 setTruTimeRows(updated);
@@ -555,8 +530,9 @@ const WeeklyTimesheetGrid = ({ weekData, onBack, onSave, employeeId, approvedLea
                                                 <input
                                                     type="text"
                                                     value={h.value}
-                                                    disabled={true}
-                                                    className={`w-full text-center h-full outline-none bg-transparent font-bold text-rose-600/50 cursor-not-allowed`}
+                                                    disabled={readOnly}
+                                                    onChange={(e) => handleLeaveHourChange(key, i, e.target.value)}
+                                                    className={`w-full text-center h-full outline-none bg-transparent font-bold text-rose-600 outline-none hover:bg-white/50 focus:bg-white transition-colors`}
                                                 />
                                             </td>
                                         );

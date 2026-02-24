@@ -47,6 +47,9 @@ public class Leave {
     
     @Column(columnDefinition = "TEXT")
     private String sessionData;
+
+    @OneToMany(mappedBy = "leave", cascade = CascadeType.ALL, orphanRemoval = true)
+    private java.util.List<LeaveDayDetail> dayDetails = new java.util.ArrayList<>();
     
     @PrePersist
     protected void onCreate() {
@@ -80,4 +83,6 @@ public class Leave {
     public void setDaysCount(Double daysCount) { this.daysCount = daysCount; }
     public String getSessionData() { return sessionData; }
     public void setSessionData(String sessionData) { this.sessionData = sessionData; }
+    public java.util.List<LeaveDayDetail> getDayDetails() { return dayDetails; }
+    public void setDayDetails(java.util.List<LeaveDayDetail> dayDetails) { this.dayDetails = dayDetails; }
 }

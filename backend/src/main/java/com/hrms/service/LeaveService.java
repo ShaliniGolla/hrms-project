@@ -8,12 +8,14 @@ import com.hrms.model.LeaveBalance;
 import com.hrms.model.LeaveStatus;
 import com.hrms.model.LeaveType;
 import com.hrms.model.User;
+import com.hrms.model.LeaveDayDetail;
 import com.hrms.model.CompanyDetail;
 import com.hrms.model.EmployeeReporting;
 import com.hrms.repository.EmployeeRepository;
 import com.hrms.repository.LeaveRepository;
 import com.hrms.repository.LeaveBalanceRepository;
 import com.hrms.repository.UserRepository;
+import com.hrms.repository.LeaveDayDetailRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -58,6 +60,9 @@ public class LeaveService {
 
     @Autowired
     private com.hrms.repository.HolidayRepository holidayRepository;
+
+    @Autowired
+    private LeaveDayDetailRepository leaveDayDetailRepository;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -155,6 +160,20 @@ public class LeaveService {
         }
 
         Leave saved = leaveRepository.save(leave);
+
+        // Save daily breakdown to leave_details table
+        if (dto.getSessionData() != null) {
+            List<LeaveDayDetail> details = new ArrayList<>();
+            dto.getSessionData().forEach((dateStr, session) -> {
+                LeaveDayDetail dayDetail = new LeaveDayDetail();
+                dayDetail.setLeave(saved);
+                dayDetail.setLeaveDate(LocalDate.parse(dateStr));
+                dayDetail.setDayType(session);
+                details.add(dayDetail);
+            });
+            leaveDayDetailRepository.saveAll(details);
+            saved.setDayDetails(details);
+        }
 
         // Deduct balance immediately on submission
         updateLeaveBalance(saved, true);
@@ -520,13 +539,16 @@ public class LeaveService {
     private String formatBreakdown(Leave leave) {
         if (leave == null || leave.getStartDate() == null || leave.getEndDate() == null) return "";
         
-        Map<String, String> sessionData = new HashMap<>();
-        try {
-            if (leave.getSessionData() != null && !leave.getSessionData().isEmpty()) {
-                sessionData = objectMapper.readValue(leave.getSessionData(), new TypeReference<Map<String, String>>() {});
+        // Prefer database table values
+        final Map<String, String> sessionData = new HashMap<>();
+        if (leave.getDayDetails() != null && !leave.getDayDetails().isEmpty()) {
+            leave.getDayDetails().forEach(d -> sessionData.put(d.getLeaveDate().toString(), d.getDayType()));
+        } else if (leave.getSessionData() != null && !leave.getSessionData().isEmpty()) {
+            try {
+                sessionData.putAll(objectMapper.readValue(leave.getSessionData(), new TypeReference<Map<String, String>>() {}));
+            } catch (Exception e) {
+                System.err.println("Failed to parse session data: " + e.getMessage());
             }
-        } catch (Exception e) {
-            System.err.println("Failed to parse session data: " + e.getMessage());
         }
 
         List<String> holidayDates = holidayRepository.findAll().stream()
@@ -592,11 +614,15 @@ public class LeaveService {
         dto.setReviewedAt(leave.getReviewedAt());
         dto.setDaysCount(leave.getDaysCount());
         
-        try {
-            if (leave.getSessionData() != null) {
-                dto.setSessionData(objectMapper.readValue(leave.getSessionData(), new TypeReference<Map<String, String>>() {}));
-            }
-        } catch (JsonProcessingException ignored) {
+        final Map<String, String> sessionMap = new HashMap<>();
+        if (leave.getDayDetails() != null && !leave.getDayDetails().isEmpty()) {
+            leave.getDayDetails().forEach(d -> sessionMap.put(d.getLeaveDate().toString(), d.getDayType()));
+            dto.setSessionData(sessionMap);
+        } else if (leave.getSessionData() != null) {
+            try {
+                sessionMap.putAll(objectMapper.readValue(leave.getSessionData(), new TypeReference<Map<String, String>>() {}));
+                dto.setSessionData(sessionMap);
+            } catch (JsonProcessingException ignored) {}
         }
 
         // Populate leave balance
