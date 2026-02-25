@@ -230,11 +230,8 @@ const WeeklyTimesheetGrid = ({ weekData, onBack, onSave, employeeId, approvedLea
     };
 
     const handleSave = () => {
-        const total = getGrandTotal();
-        if (total !== 40) {
-            toast.error("Timesheet must be exactly 40 hours to submit. Current total: " + total.toFixed(2));
-            return;
-        }
+        // No restriction of 40 hours as per user request
+
 
         const payload = {
             employeeId,
@@ -551,8 +548,8 @@ const WeeklyTimesheetGrid = ({ weekData, onBack, onSave, employeeId, approvedLea
                 <div className="flex justify-end items-center max-w-6xl mx-auto px-8">
                     <div className="text-right">
                         <p className="text-[9px] uppercase font-black text-slate-500 tracking-wider">Total Hours</p>
-                        <p className={`text-xl font-black ${getGrandTotal() >= 40 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                            {getGrandTotal().toFixed(2)} / 40.00
+                        <p className="text-xl font-black text-emerald-400">
+                            {getGrandTotal().toFixed(2)}
                         </p>
                     </div>
                 </div>
