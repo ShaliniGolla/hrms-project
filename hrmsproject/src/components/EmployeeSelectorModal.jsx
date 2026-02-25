@@ -19,7 +19,8 @@ export default function EmployeeSelectorModal({ open, onClose, onSave }) {
       const list = fetchedEmployees
         .filter(e => {
           const isSystemAdmin = (e.role === 'ADMIN') || (e.firstName === 'System' && e.lastName === 'Admin');
-          return !isSystemAdmin;
+          const isHR = (e.role === 'HR');
+          return !isSystemAdmin && !isHR;
         })
         .map((e) => ({
           id: e.id,

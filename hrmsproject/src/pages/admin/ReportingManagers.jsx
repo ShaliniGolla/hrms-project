@@ -293,7 +293,7 @@ export default function ReportingManagers() {
                             className="bg-brand-blue/5 border-none rounded-xl px-4 py-2 text-[10px] font-bold text-brand-blue focus:ring-2 focus:ring-brand-yellow/50 transition-all outline-none"
                           >
                             <option value="">Select Employee to Add</option>
-                            {availableEmployees.filter(ae => !selected.team.some(tm => tm.id === ae.id)).map(ae => (
+                            {availableEmployees.filter(ae => !selected.team.some(tm => tm.id === ae.id) && !ae.designation?.includes("HR")).map(ae => (
                               <option key={ae.id} value={ae.id}>
                                 {ae.name} ({ae.corporateEmail || ae.email})
                               </option>
