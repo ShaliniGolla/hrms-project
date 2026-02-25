@@ -66,7 +66,9 @@ function App() {
           element={
             user?.role === "REPORTING_MANAGER"
               ? <Navigate to="/reporting-dashboard?tab=profile" />
-              : <Navigate to="/employee?tab=profile" />
+              : user?.role === "HR"
+                ? <Navigate to="/hr?tab=profile" />
+                : <Navigate to="/employee?tab=profile" />
           }
         />
         <Route

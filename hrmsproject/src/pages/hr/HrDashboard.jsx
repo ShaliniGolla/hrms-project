@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import LeaveRequestPage from "../employee/LeaveRequestPage";
 import Sidebar from '../../components/Sidebar';
 import PersonalTimesheetContent from "../employee/PersonalTimesheetContent";
+import EmployeeOwnProfile from "../employee/EmployeeOwnProfile";
 import { getHrNavItems } from "../../utils/hrNav";
 
 const HrDashboard = () => {
@@ -305,7 +306,7 @@ const HrDashboard = () => {
 						</div>
 						<div className="flex items-center gap-3">
 							<button
-								onClick={() => navigate("/employee/profile")}
+								onClick={() => setActiveTab("profile")}
 								className="px-6 py-2 bg-brand-yellow text-brand-blue font-black rounded-xl text-[11px] uppercase tracking-widest shadow-lg shadow-brand-yellow/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-2"
 							>
 								<svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
@@ -331,15 +332,15 @@ const HrDashboard = () => {
 							</div>
 							<div>
 								<h1 className="text-xl font-black text-brand-blue tracking-tight">
-									{activeTab === 'timesheet' ? 'My Timesheets' : activeTab === 'leave' ? 'My Leave Management' : 'Human Resources Operations'}
+									{activeTab === 'timesheet' ? 'My Timesheets' : activeTab === 'leave' ? 'My Leave Management' : activeTab === 'profile' ? 'My Profile' : 'Human Resources Operations'}
 								</h1>
 								<p className="text-[10px] text-brand-blue/40 uppercase font-black tracking-[0.2em] mt-0.5">
-									Personal Workspace
+									{activeTab === 'profile' ? 'Profile Management' : 'Personal Workspace'}
 								</p>
 							</div>
 						</div>
 						<button
-							onClick={() => navigate("/employee/profile")}
+							onClick={() => setActiveTab("profile")}
 							className="px-6 py-2 bg-brand-yellow text-brand-blue font-black rounded-xl text-[11px] uppercase tracking-widest shadow-lg shadow-brand-yellow/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-2"
 						>
 							<svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
@@ -527,6 +528,10 @@ const HrDashboard = () => {
 							leaveBalance={leaveBalance}
 							onLeaveRequestSuccess={handleRefreshData}
 						/>
+					)}
+
+					{activeTab === 'profile' && (
+						<EmployeeOwnProfile hideSidebar={true} />
 					)}
 
 

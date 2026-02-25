@@ -2,6 +2,8 @@ import React, { useEffect, useState } from "react";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
 import Logo from '../../assets/ORYFOLKS-logo.png';
 import AdminSidebar from "../../components/AdminSidebar";
+import Sidebar from "../../components/Sidebar";
+import { getHrNavItems } from "../../utils/hrNav";
 
 export default function EmployeeProfile() {
   const { id } = useParams();
@@ -407,12 +409,23 @@ export default function EmployeeProfile() {
     }
   };
 
+  const userRole = JSON.parse(localStorage.getItem("user"))?.role;
+
   return (
     <div className="flex h-screen w-screen bg-[#e3edf9] overflow-hidden">
-      <AdminSidebar
-        activeTab={JSON.parse(localStorage.getItem("user"))?.role === "REPORTING_MANAGER" ? "team" : "candidates"}
-        onLogout={handleLogout}
-      />
+      {userRole === "HR" ? (
+        <Sidebar
+          activeTab="candidates"
+          setActiveTab={() => { }}
+          handleLogout={handleLogout}
+          navItems={getHrNavItems()}
+        />
+      ) : (
+        <AdminSidebar
+          activeTab={userRole === "REPORTING_MANAGER" ? "team" : "candidates"}
+          onLogout={handleLogout}
+        />
+      )}
 
       <main className="flex-1 overflow-y-auto p-4 md:p-8">
         <div className="max-w-6xl mx-auto space-y-6">
