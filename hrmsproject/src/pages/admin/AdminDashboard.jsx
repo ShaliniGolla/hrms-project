@@ -8,6 +8,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, Label } from
 import { Calendar as CalendarIconSVG, Eye } from "lucide-react";
 import YearlyHolidayCalendar from "../common/YearlyHolidayCalendar";
 import LeaveDetailsModal from "../../components/LeaveDetailsModal";
+import NotificationComponent from "../../components/NotificationComponent";
 function HRTeamDisplay() {
   const [hrUsers, setHrUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -494,6 +495,7 @@ export default function AdminDashboard() {
               </div>
             </div>
             <div className="flex items-center gap-3">
+              <NotificationComponent />
               <button
                 onClick={() => setIsYearlyCalendarOpen(true)}
                 className="group w-11 h-11 bg-white hover:bg-brand-blue rounded-xl flex items-center justify-center transition-all shadow-sm border border-brand-blue/5 hover:border-brand-blue/20"

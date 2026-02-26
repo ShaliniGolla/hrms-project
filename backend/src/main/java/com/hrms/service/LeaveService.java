@@ -64,6 +64,9 @@ public class LeaveService {
     @Autowired
     private LeaveDayDetailRepository leaveDayDetailRepository;
 
+    @Autowired
+    private NotificationService notificationService;
+
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     // Fetch all leaves for team members of a manager
@@ -181,7 +184,57 @@ public class LeaveService {
         // Send Email Notifications
         sendLeaveEmails(saved);
 
+        // Send In-App Notifications
+        sendLeaveInAppNotifications(saved);
+
         return convertToDTO(saved);
+    }
+
+    private void sendLeaveInAppNotifications(Leave leave) {
+        try {
+            Employee employee = leave.getEmployee();
+            String employeeName = employee.getFirstName() + " " + employee.getLastName();
+            String message = employeeName + " has submitted a " + leave.getLeaveType() + " leave request for " + leave.getDaysCount() + " days.";
+            
+            EmployeeReporting reporting = employeeReportingRepository.findByEmployee(employee).orElse(null);
+            
+            // Notify RM
+            if (reporting != null && reporting.getReportingManager() != null && reporting.getReportingManager().getUser() != null) {
+                notificationService.createNotification(
+                    reporting.getReportingManager().getUser().getId(),
+                    "New Leave Request",
+                    message,
+                    "LEAVE",
+                    leave.getId()
+                );
+            }
+            
+            // Notify HR
+            List<User> hrUsers = userRepository.findByRole(com.hrms.model.Role.HR);
+            for (User hr : hrUsers) {
+                notificationService.createNotification(
+                    hr.getId(),
+                    "New Leave Request",
+                    message,
+                    "LEAVE",
+                    leave.getId()
+                );
+            }
+
+            // Notify Admin
+            List<User> adminUsers = userRepository.findByRole(com.hrms.model.Role.ADMIN);
+            for (User admin : adminUsers) {
+                notificationService.createNotification(
+                    admin.getId(),
+                    "New Leave Request",
+                    message,
+                    "LEAVE",
+                    leave.getId()
+                );
+            }
+        } catch (Exception e) {
+            System.err.println("Failed to send leave in-app notifications: " + e.getMessage());
+        }
     }
 
     private void sendLeaveEmails(Leave leave) {
@@ -317,6 +370,17 @@ public class LeaveService {
         // Send Status Email
         sendStatusEmail(approved);
 
+        // Send In-App Notification
+        if (approved.getEmployee().getUser() != null) {
+            notificationService.createNotification(
+                approved.getEmployee().getUser().getId(),
+                "Leave Approved",
+                "Your " + approved.getLeaveType() + " leave request has been approved.",
+                "LEAVE",
+                approved.getId()
+            );
+        }
+
         return convertToDTO(approved);
     }
 
@@ -343,6 +407,17 @@ public class LeaveService {
 
         // Send Status Email
         sendStatusEmail(rejected);
+
+        // Send In-App Notification
+        if (rejected.getEmployee().getUser() != null) {
+            notificationService.createNotification(
+                rejected.getEmployee().getUser().getId(),
+                "Leave Rejected",
+                "Your " + rejected.getLeaveType() + " leave request has been rejected. Reason: " + reason,
+                "LEAVE",
+                rejected.getId()
+            );
+        }
 
         return convertToDTO(rejected);
     }

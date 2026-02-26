@@ -13,6 +13,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+import com.hrms.repository.EmployeeReportingRepository;
+import com.hrms.model.EmployeeReporting;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -32,6 +34,12 @@ public class TimesheetService {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private EmployeeReportingRepository employeeReportingRepository;
+
+    @Autowired
+    private NotificationService notificationService;
 
     public List<TimesheetDTO> getAllTimesheets(Long employeeId, LocalDate fromDate, LocalDate toDate,
             String status, Integer page, Integer size) {
@@ -85,6 +93,11 @@ public class TimesheetService {
         }
 
         Timesheet saved = timesheetRepository.save(timesheet);
+        
+        // Notify RM and HR about new timesheet (if not a weekly batch, but weekly is preferred)
+        // For individual entries, we might not want to spam. But the user said "new timesheet received".
+        // Usually, weekly is what's monitored.
+        
         return convertToDTO(saved);
     }
 
@@ -139,7 +152,41 @@ public class TimesheetService {
         timesheet.setReviewedAt(LocalDateTime.now());
 
         Timesheet approved = timesheetRepository.save(timesheet);
+
+        // Notify Employee on a weekly basis
+        notifyWeeklyTimesheetStatus(approved, "Approved");
+
         return convertToDTO(approved);
+    }
+
+    private void notifyWeeklyTimesheetStatus(Timesheet entry, String status) {
+        if (entry.getEmployee().getUser() == null) return;
+        
+        LocalDate date = entry.getDate();
+        // Calculate week start (Saturday is my week start in this app)
+        // DayOfWeek.getValue(): 1(Mon) to 7(Sun)
+        // If Mon(1), move back 2 days to Sat. (1+2)=3? No.
+        // Sat is 6. Sun is 7.
+        // If Sat(6), diff=0. If Sun(7), diff=1. If Mon(1), diff=2.
+        // Formula for days to subtract: (dayOfWeek + 1) % 7
+        int dayValue = date.getDayOfWeek().getValue();
+        int daysToSubtract = (dayValue % 7) + 1; 
+        if (dayValue == 6) daysToSubtract = 0; // Saturday
+        else if (dayValue == 7) daysToSubtract = 1; // Sunday
+        else daysToSubtract = dayValue + 1; // Mon=2, Tue=3, etc.
+        
+        LocalDate weekStart = date.minusDays(daysToSubtract);
+        LocalDate weekEnd = weekStart.plusDays(6);
+
+        String message = "Your timesheet for the week starting " + weekStart + " has been " + status.toLowerCase() + ".";
+        
+        notificationService.createNotification(
+            entry.getEmployee().getUser().getId(),
+            "Timesheet " + status,
+            message,
+            "TIMESHEET",
+            null
+        );
     }
 
     public TimesheetDTO rejectTimesheet(Long id, Long reviewerId, String reason) {
@@ -159,6 +206,10 @@ public class TimesheetService {
         timesheet.setReviewedAt(LocalDateTime.now());
 
         Timesheet rejected = timesheetRepository.save(timesheet);
+
+        // Notify Employee on a weekly basis
+        notifyWeeklyTimesheetStatus(rejected, "Rejected");
+
         return convertToDTO(rejected);
     }
 
@@ -174,6 +225,55 @@ public class TimesheetService {
                 dto.setEmployeeId(employeeId);
                 createTimesheet(dto);
             }
+        }
+    }
+
+    private void sendWeeklyTimesheetNotification(Long employeeId, LocalDate weekStart) {
+        try {
+            Employee employee = employeeRepository.findById(employeeId).orElse(null);
+            if (employee == null) return;
+            
+            String employeeName = employee.getFirstName() + " " + employee.getLastName();
+            String message = employeeName + " has submitted a weekly timesheet starting from " + weekStart;
+            
+            EmployeeReporting reporting = employeeReportingRepository.findByEmployee(employee).orElse(null);
+            
+            // Notify RM
+            if (reporting != null && reporting.getReportingManager() != null && reporting.getReportingManager().getUser() != null) {
+                notificationService.createNotification(
+                    reporting.getReportingManager().getUser().getId(),
+                    "New Timesheet Submission",
+                    message,
+                    "TIMESHEET",
+                    null // Maybe link to a week view later
+                );
+            }
+            
+            // Notify HR
+            List<User> hrUsers = userRepository.findByRole(com.hrms.model.Role.HR);
+            for (User hr : hrUsers) {
+                notificationService.createNotification(
+                    hr.getId(),
+                    "New Timesheet Submission",
+                    message,
+                    "TIMESHEET",
+                    null
+                );
+            }
+
+            // Notify Admin
+            List<User> adminUsers = userRepository.findByRole(com.hrms.model.Role.ADMIN);
+            for (User admin : adminUsers) {
+                notificationService.createNotification(
+                    admin.getId(),
+                    "New Timesheet Submission",
+                    message,
+                    "TIMESHEET",
+                    null
+                );
+            }
+        } catch (Exception e) {
+            System.err.println("Failed to send weekly timesheet notifications: " + e.getMessage());
         }
     }
 
