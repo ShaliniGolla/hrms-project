@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from "react";
+import api from "../../utils/api";
+
 import { toast } from "react-toastify";
 import TimesheetSummary from "./timesheet/TimesheetSummary";
 import WeeklyTimesheetGrid from "./timesheet/WeeklyTimesheetGrid";
@@ -32,10 +34,7 @@ const PersonalTimesheetContent = ({ employeeId, user, profileResolved = true }) 
 
     const fetchApprovedLeaves = async (id) => {
         try {
-            const token = localStorage.getItem("token");
-            const response = await fetch(`http://localhost:8080/api/leaves/employee/${id}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+            const response = await api(`/api/leaves/employee/${id}`);
             const result = await response.json();
             if (response.ok && result.data) {
                 // Filter only approved leaves
@@ -50,11 +49,7 @@ const PersonalTimesheetContent = ({ employeeId, user, profileResolved = true }) 
     const fetchHolidays = async () => {
         try {
             const year = new Date().getFullYear();
-            const response = await fetch(`http://localhost:8080/api/holidays/year/${year}`, {
-                headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
-                },
-            });
+            const response = await api(`/api/holidays/year/${year}`);
             const data = await response.json();
             if (data && data.status === "success") {
                 setHolidays(data.data || []);
@@ -68,14 +63,7 @@ const PersonalTimesheetContent = ({ employeeId, user, profileResolved = true }) 
         if (!id) return;
         try {
             setLoading(true);
-            const token = localStorage.getItem("token");
-            const response = await fetch(`http://localhost:8080/api/timesheets?employeeId=${id}`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                },
-                credentials: "include"
-            });
+            const response = await api(`/api/timesheets?employeeId=${id}`);
             const result = await response.json();
             if (response.ok) {
                 setTimesheetData(result.data || []);
@@ -92,10 +80,7 @@ const PersonalTimesheetContent = ({ employeeId, user, profileResolved = true }) 
 
     const fetchEmployeeDetails = async (id) => {
         try {
-            const token = localStorage.getItem("token");
-            const response = await fetch(`http://localhost:8080/api/employees/${id}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+            const response = await api(`/api/employees/${id}`);
             const result = await response.json();
             if (response.ok && result.data) {
                 setJoiningDate(result.data.joiningDate || result.data.hireDate);
@@ -243,13 +228,8 @@ const PersonalTimesheetContent = ({ employeeId, user, profileResolved = true }) 
             const weeklyPayload = { weekStart: payload.weekStart, entries: formattedEntries };
             console.log('[Timesheet] Saving payload:', JSON.stringify(weeklyPayload, null, 2));
 
-            const response = await fetch('http://localhost:8080/api/timesheets/save-weekly', {
+            const response = await api("/api/timesheets/save-weekly", {
                 method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                },
-                credentials: "include",
                 body: JSON.stringify(weeklyPayload)
             });
 

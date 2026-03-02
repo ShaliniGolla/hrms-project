@@ -23,6 +23,9 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import com.hrms.security.AuthTokenFilter;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+
 
 import java.util.Arrays;
 
@@ -33,6 +36,11 @@ public class SecurityConfig {
 
         @Autowired
         private MyUserDetailsService userDetailsService;
+
+        @Bean
+        public AuthTokenFilter authenticationJwtTokenFilter() {
+                return new AuthTokenFilter();
+        }
 
         @Bean
         public AuthenticationProvider authenticationProvider() {
@@ -49,8 +57,8 @@ public class SecurityConfig {
                                 .authenticationProvider(authenticationProvider())
                                 .csrf(csrf -> csrf.disable()) // Temporarily disable CSRF completely for API endpoints
                                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                                .sessionManagement(session -> session
-                                                .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
+                                .sessionManagement(sessionManagement -> sessionManagement
+                                                .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                                 .authorizeHttpRequests(auth -> auth
                                                 .requestMatchers(
                                                                 "/login",
@@ -64,6 +72,8 @@ public class SecurityConfig {
                                                 .requestMatchers("/api/**").permitAll()
                                                 .anyRequest().authenticated())
                                 .exceptionHandling(ex -> ex.accessDeniedHandler(accessDeniedHandler()));
+
+                http.addFilterBefore(authenticationJwtTokenFilter(), UsernamePasswordAuthenticationFilter.class);
 
                 return http.build();
         }

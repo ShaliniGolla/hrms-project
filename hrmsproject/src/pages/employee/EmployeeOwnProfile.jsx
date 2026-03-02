@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import api from "../../utils/api";
+
 import Logo from '../../assets/ORYFOLKS-logo.png';
 import Sidebar from "../../components/Sidebar";
 
@@ -26,7 +28,7 @@ export default function EmployeeOwnProfile({ hideSidebar = false }) {
       if (activeSection === 'leave_balance' && employee?.id && !leaveBalance) {
         setFetchingBalance(true);
         try {
-          const res = await fetch(`http://localhost:8080/api/leaves/balance/${employee.id}`, { credentials: "include" });
+          const res = await api(`/api/leaves/balance/${employee.id}`);
           if (res.ok) {
             const json = await res.json();
             setLeaveBalance(json.data);
@@ -45,9 +47,7 @@ export default function EmployeeOwnProfile({ hideSidebar = false }) {
     setLoading(true);
     setError("");
     try {
-      const res = await fetch("http://localhost:8080/me/employee", {
-        credentials: "include"
-      });
+      const res = await api("/me/employee");
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -229,10 +229,9 @@ export default function EmployeeOwnProfile({ hideSidebar = false }) {
       if (employee?.id) formData.append('employeeId', employee.id);
 
       try {
-        const res = await fetch("http://localhost:8080/api/employees/upload-photo", {
+        const res = await api("/api/employees/upload-photo", {
           method: "POST",
-          body: formData,
-          credentials: "include"
+          body: formData
         });
 
         if (!res.ok) throw new Error("Photo upload failed");
@@ -283,10 +282,8 @@ export default function EmployeeOwnProfile({ hideSidebar = false }) {
           corporateEmail: form.companyMail || null,
         };
 
-        const res = await fetch(`http://localhost:8080/api/employees/${employee.id}`, {
+        const res = await api(`/api/employees/${employee.id}`, {
           method: "PUT",
-          credentials: "include",
-          headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
         });
 
@@ -390,10 +387,9 @@ export default function EmployeeOwnProfile({ hideSidebar = false }) {
       if (employee?.id) formData.append('employeeId', employee.id);
 
       try {
-        const res = await fetch("http://localhost:8080/api/documents/upload", {
+        const res = await api("/api/documents/upload", {
           method: "POST",
-          body: formData,
-          credentials: "include"
+          body: formData
         });
 
         if (!res.ok) throw new Error("Upload failed");
@@ -430,9 +426,8 @@ export default function EmployeeOwnProfile({ hideSidebar = false }) {
     if (!window.confirm("Are you sure you want to delete this document?")) return;
 
     try {
-      const res = await fetch(`http://localhost:8080/api/documents/${fileToRemove.id}`, {
-        method: "DELETE",
-        credentials: "include"
+      const res = await api(`/api/documents/${fileToRemove.id}`, {
+        method: "DELETE"
       });
 
       if (!res.ok) throw new Error("Delete failed");

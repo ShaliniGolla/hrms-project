@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from "react";
+import api from "../../utils/api";
+
 import { useNavigate, useLocation } from "react-router-dom";
 import Logo from '../../assets/ORYFOLKS-logo.png';
 import WeeklyTimesheetGrid from "../employee/timesheet/WeeklyTimesheetGrid";
@@ -52,16 +54,7 @@ export default function ReportingManagerTeam() {
 
         const fetchEmployeeProfile = async () => {
             try {
-                const token = localStorage.getItem("token");
-                const response = await fetch("http://localhost:8080/me/employee", {
-                    method: "GET",
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    },
-                    credentials: "include"
-                });
-
+                const response = await api("/me/employee");
                 if (response.ok) {
                     const result = await response.json();
                     const employeeData = result.data || result;
@@ -97,9 +90,7 @@ export default function ReportingManagerTeam() {
         setLeavesLoading(true);
         setLeavesError(null);
         try {
-            const res = await fetch(`http://localhost:8080/api/leaves/manager/${managerId}/team-leaves`, {
-                credentials: "include"
-            });
+            const res = await api(`/api/leaves/manager/${managerId}/team-leaves`);
             if (res.ok) {
                 let api = await res.json();
                 let data = (api && api.data) ? api.data : [];
@@ -123,9 +114,7 @@ export default function ReportingManagerTeam() {
         setTsLoading(true);
         setTsError(null);
         try {
-            const res = await fetch(`http://localhost:8080/api/timesheets/manager/${managerId}/team-timesheets`, {
-                credentials: "include"
-            });
+            const res = await api(`/api/timesheets/manager/${managerId}/team-timesheets`);
             if (res.ok) {
                 const api = await res.json();
                 const allEntries = api.data || [];
@@ -146,9 +135,7 @@ export default function ReportingManagerTeam() {
         setLoading(true);
         setError(null);
         try {
-            const res = await fetch(`http://localhost:8080/api/reporting-managers/${managerId}`, {
-                credentials: "include"
-            });
+            const res = await api(`/api/reporting-managers/${managerId}`);
             if (res.ok) {
                 const data = await res.json();
                 const team = (data.team || []).filter(member => member.id !== managerId);
@@ -166,10 +153,8 @@ export default function ReportingManagerTeam() {
 
     const handleApproveTimesheet = async (id) => {
         try {
-            const response = await fetch(`http://localhost:8080/api/timesheets/${id}/approve`, {
+            const response = await api(`/api/timesheets/${id}/approve`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: "include",
                 body: JSON.stringify({ reviewerId: managerId, comments: "Approved by manager" })
             });
             if (response.ok) {
@@ -184,10 +169,8 @@ export default function ReportingManagerTeam() {
         const reason = window.prompt("Enter reason for rejection:", "Rejected by manager");
         if (reason === null) return;
         try {
-            const response = await fetch(`http://localhost:8080/api/timesheets/${id}/reject`, {
+            const response = await api(`/api/timesheets/${id}/reject`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: "include",
                 body: JSON.stringify({ reviewerId: managerId, reason: reason })
             });
             if (response.ok) {
@@ -315,10 +298,8 @@ export default function ReportingManagerTeam() {
             }
             setTsLoading(true);
             for (const entry of pendingEntries) {
-                await fetch(`http://localhost:8080/api/timesheets/${entry.id}/approve`, {
+                await api(`/api/timesheets/${entry.id}/approve`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    credentials: "include",
                     body: JSON.stringify({ reviewerId: managerId, comments: "Approved by manager" })
                 });
             }
@@ -339,10 +320,8 @@ export default function ReportingManagerTeam() {
             const pendingEntries = week.entries.filter(e => e.status === 'PENDING');
             setTsLoading(true);
             for (const entry of pendingEntries) {
-                await fetch(`http://localhost:8080/api/timesheets/${entry.id}/reject`, {
+                await api(`/api/timesheets/${entry.id}/reject`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    credentials: "include",
                     body: JSON.stringify({ reviewerId: managerId, reason: reason })
                 });
             }
@@ -547,8 +526,8 @@ export default function ReportingManagerTeam() {
                                                                 </button>
                                                                 {leave.status === 'PENDING' && (
                                                                     <>
-                                                                        <button onClick={async () => { await fetch(`http://localhost:8080/api/leaves/${leave.id}/approve`, { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ approverId: managerId }) }); fetchLeaves(managerId); }} className="px-3 py-1 bg-emerald-500 text-white rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-emerald-600 shadow-md">Approve</button>
-                                                                        <button onClick={async () => { await fetch(`http://localhost:8080/api/leaves/${leave.id}/reject`, { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ approverId: managerId, reason: "Rejected by manager" }) }); fetchLeaves(managerId); }} className="px-3 py-1 bg-red-500 text-white rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-red-600 shadow-md">Reject</button>
+                                                                        <button onClick={async () => { await api(`/api/leaves/${leave.id}/approve`, { method: 'POST', body: JSON.stringify({ approverId: managerId }) }); fetchLeaves(managerId); }} className="px-3 py-1 bg-emerald-500 text-white rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-emerald-600 shadow-md">Approve</button>
+                                                                        <button onClick={async () => { await api(`/api/leaves/${leave.id}/reject`, { method: 'POST', body: JSON.stringify({ approverId: managerId, reason: "Rejected by manager" }) }); fetchLeaves(managerId); }} className="px-3 py-1 bg-red-500 text-white rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-red-600 shadow-md">Reject</button>
                                                                     </>
                                                                 )}
                                                             </div>

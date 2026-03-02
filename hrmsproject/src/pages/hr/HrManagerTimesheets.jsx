@@ -1,5 +1,7 @@
 
 import React, { useState, useEffect } from "react";
+import api from "../../utils/api";
+
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../../components/Sidebar";
 import WeeklyTimesheetGrid from "../employee/timesheet/WeeklyTimesheetGrid";
@@ -27,23 +29,15 @@ export default function HrManagerTimesheets() {
     const fetchData = async () => {
         try {
             setLoading(true);
-            const token = localStorage.getItem("token");
-            const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
 
             // 1. Fetch Reporting Managers
-            const managerRes = await fetch("http://localhost:8080/api/reporting-managers", {
-                headers,
-                credentials: "include",
-            });
+            const managerRes = await api("/api/reporting-managers");
             const managersData = await managerRes.json();
             const managersList = Array.isArray(managersData) ? managersData : (managersData.data || []);
             setManagers(managersList);
 
-            // 2. Fetch ALL timesheets (since backend now allows HR to see all)
-            const tsRes = await fetch("http://localhost:8080/api/timesheets?size=1000", {
-                headers,
-                credentials: "include"
-            });
+            // 2. Fetch ALL timesheets
+            const tsRes = await api("/api/timesheets?size=1000");
 
             if (tsRes.ok) {
                 const tsJson = await tsRes.json();
@@ -78,10 +72,8 @@ export default function HrManagerTimesheets() {
 
     const handleApprove = async (id) => {
         try {
-            const res = await fetch(`http://localhost:8080/api/timesheets/${id}/approve`, {
+            const res = await api(`/api/timesheets/${id}/approve`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: "include",
                 body: JSON.stringify({ reviewerId: user.id })
             });
             if (res.ok) {
@@ -99,10 +91,8 @@ export default function HrManagerTimesheets() {
         const reason = window.prompt("Enter rejection reason:");
         if (reason === null) return;
         try {
-            const res = await fetch(`http://localhost:8080/api/timesheets/${id}/reject`, {
+            const res = await api(`/api/timesheets/${id}/reject`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: "include",
                 body: JSON.stringify({ reviewerId: user.id, reason })
             });
             if (res.ok) {
@@ -218,10 +208,8 @@ export default function HrManagerTimesheets() {
 
             setLoading(true);
             for (const entry of pendingEntries) {
-                await fetch(`http://localhost:8080/api/timesheets/${entry.id}/approve`, {
+                await api(`/api/timesheets/${entry.id}/approve`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    credentials: "include",
                     body: JSON.stringify({ reviewerId: user.id })
                 });
             }
@@ -243,10 +231,8 @@ export default function HrManagerTimesheets() {
             const pendingEntries = week.entries.filter(e => e.status === 'PENDING');
             setLoading(true);
             for (const entry of pendingEntries) {
-                await fetch(`http://localhost:8080/api/timesheets/${entry.id}/reject`, {
+                await api(`/api/timesheets/${entry.id}/reject`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    credentials: "include",
                     body: JSON.stringify({ reviewerId: user.id, reason })
                 });
             }

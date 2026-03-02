@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import api from "../../utils/api";
+
 import LeaveRequestPage from "./LeaveRequestPage";
 import PersonalTimesheetContent from "./PersonalTimesheetContent";
 import EmployeeOwnProfile from "./EmployeeOwnProfile";
@@ -46,9 +48,7 @@ const EmployeeDashboard = () => {
 
 	const fetchEmployeeProfile = async () => {
 		try {
-			const response = await fetch("http://localhost:8080/me/employee", {
-				credentials: "include"
-			});
+			const response = await api("/me/employee");
 
 			if (response.ok) {
 				const result = await response.json();
@@ -93,14 +93,9 @@ const EmployeeDashboard = () => {
 	const fetchLeaveData = async (employeeId) => {
 		try {
 			setLoading(true);
-			const token = localStorage.getItem("token");
 
 			// Fetch leave balance
-			const balanceResponse = await fetch(`http://localhost:8080/api/leaves/balance/${employeeId}`, {
-				headers: {
-					'Authorization': `Bearer ${token}`,
-				}
-			});
+			const balanceResponse = await api(`/api/leaves/balance/${employeeId}`);
 
 			if (balanceResponse.ok) {
 				const balanceData = await balanceResponse.json();
@@ -108,11 +103,7 @@ const EmployeeDashboard = () => {
 			}
 
 			// Fetch all leaves, sorted by newest first
-			const allLeavesResponse = await fetch(`http://localhost:8080/api/leaves/employee/${employeeId}`, {
-				headers: {
-					'Authorization': `Bearer ${token}`,
-				}
-			});
+			const allLeavesResponse = await api(`/api/leaves/employee/${employeeId}`);
 
 			if (allLeavesResponse.ok) {
 				const allLeavesData = await allLeavesResponse.json();
@@ -185,9 +176,7 @@ const EmployeeDashboard = () => {
 		if (!id) return;
 		try {
 			setTimesheetLoading(true);
-			const response = await fetch(`http://localhost:8080/api/timesheets?employeeId=${id}`, {
-				credentials: "include"
-			});
+			const response = await api(`/api/timesheets?employeeId=${id}`);
 			if (response.ok) {
 				const result = await response.json();
 				const data = result.data || [];

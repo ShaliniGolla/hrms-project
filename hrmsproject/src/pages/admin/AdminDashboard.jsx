@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import api from "../../utils/api";
 import AdminSidebar from "../../components/AdminSidebar";
 import EmployeeSelectorModal from "../../components/EmployeeSelectorModal";
 import AddEmployeeModal from "../../components/AddEmployeeModal";
@@ -19,12 +20,12 @@ function HRTeamDisplay() {
         setLoading(true);
 
         // Fetch all users
-        const usersRes = await fetch("http://localhost:8080/api/users", { credentials: "include" });
+        const usersRes = await api("/api/users");
         const usersData = await usersRes.json();
         const hrUsersList = Array.isArray(usersData) ? usersData.filter(u => u.role === 'HR') : [];
 
         // Fetch all employees
-        const empRes = await fetch("http://localhost:8080/api/employees", { credentials: "include" });
+        const empRes = await api("/api/employees");
         const empData = await empRes.json();
         const employeesList = Array.isArray(empData.data) ? empData.data : [];
 
@@ -167,7 +168,7 @@ export default function AdminDashboard() {
       const start = formatDateLocal(new Date(year, month, 1));
       const end = formatDateLocal(new Date(year, month + 1, 0));
 
-      const res = await fetch(`http://localhost:8080/api/attendance/calendar?start=${start}&end=${end}`, { credentials: "include" });
+      const res = await api(`/api/attendance/calendar?start=${start}&end=${end}`);
       const data = await res.json();
       if (data.status === "success") {
         setCalendarData(data.data.dailyLeaves || {});
@@ -205,12 +206,7 @@ export default function AdminDashboard() {
   const fetchLeaveRequests = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem("token");
-      const response = await fetch("http://localhost:8080/api/leaves", {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        }
-      });
+      const response = await api("/api/leaves");
 
       if (response.ok) {
         const data = await response.json();
@@ -246,7 +242,7 @@ export default function AdminDashboard() {
     const fetchStats = async () => {
       try {
         // Fetch total employees
-        const empRes = await fetch("http://localhost:8080/api/employees", { credentials: "include" });
+        const empRes = await api("/api/employees");
         console.log("Employees response status:", empRes.status);
         const empData = empRes.ok ? await empRes.json() : {};
         console.log("Employees response:", empData);
@@ -261,7 +257,7 @@ export default function AdminDashboard() {
         const totalEmployees = activeEmployees.length;
 
         // Fetch users to count HR and Reporting Managers
-        const usersRes = await fetch("http://localhost:8080/api/users", { credentials: "include" });
+        const usersRes = await api("/api/users");
         console.log("Users response status:", usersRes.status);
         const usersData = usersRes.ok ? await usersRes.json() : {};
         console.log("Users response:", usersData);

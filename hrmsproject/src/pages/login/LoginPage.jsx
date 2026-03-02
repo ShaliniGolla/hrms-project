@@ -19,7 +19,6 @@ const LoginPage = ({ setUser }) => {
       const loginRes = await fetch("http://localhost:8080/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        credentials: "include",
         body: JSON.stringify({ username, password }),
       });
 
@@ -30,10 +29,14 @@ const LoginPage = ({ setUser }) => {
         return;
       }
 
+      const { token } = await loginRes.json();
+      localStorage.setItem("token", token);
+      console.log("🔵 Token stored");
+
       console.log("🔵 Calling /me");
 
       const meRes = await fetch("http://localhost:8080/me", {
-        credentials: "include",
+        headers: { "Authorization": `Bearer ${token}` }
       });
 
       console.log("🟢 /me response:", meRes.status);
@@ -58,7 +61,7 @@ const LoginPage = ({ setUser }) => {
       // Try to fetch employee details to get the name and employeeId
       try {
         const empRes = await fetch("http://localhost:8080/me/employee", {
-          credentials: "include",
+          headers: { "Authorization": `Bearer ${token}` }
         });
         if (empRes.ok) {
           const empJson = await empRes.json();

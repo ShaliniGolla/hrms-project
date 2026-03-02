@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import api from '../../utils/api';
+
 import { toast } from 'react-toastify';
 import { Eye } from 'lucide-react';
 import LeaveDetailsModal from '../../components/LeaveDetailsModal';
@@ -26,11 +28,7 @@ const LeaveRequestPage = ({ employeeId, leaveBalance, onLeaveRequestSuccess }) =
     if (!employeeId) return;
     setHistoryLoading(true);
     try {
-      const response = await fetch(`http://localhost:8080/api/leaves/employee/${employeeId}`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
-      });
+      const response = await api(`/api/leaves/employee/${employeeId}`);
       const data = await response.json();
       const leaves = (data && data.data) ? data.data : [];
       setLeaveHistory(leaves);
@@ -58,11 +56,7 @@ const LeaveRequestPage = ({ employeeId, leaveBalance, onLeaveRequestSuccess }) =
   const fetchHolidays = async () => {
     try {
       const year = new Date().getFullYear();
-      const response = await fetch(`http://localhost:8080/api/holidays/year/${year}`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
-      });
+      const response = await api(`/api/holidays/year/${year}`);
       const data = await response.json();
       if (data && data.status === "success") {
         setHolidays(data.data || []);
@@ -250,12 +244,8 @@ const LeaveRequestPage = ({ employeeId, leaveBalance, onLeaveRequestSuccess }) =
         sessionData: formData.sessionData
       };
 
-      const response = await fetch('http://localhost:8080/api/leaves', {
+      const response = await api('/api/leaves', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
         body: JSON.stringify(payload),
       });
 

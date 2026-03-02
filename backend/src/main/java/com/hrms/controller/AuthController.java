@@ -20,6 +20,7 @@ import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
+import com.hrms.security.JwtUtils;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -37,6 +38,9 @@ public class AuthController {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    @Autowired
+    private JwtUtils jwtUtils;
+
     @PostMapping("/login")
     public ResponseEntity<?> login(
             @RequestBody Map<String, String> body,
@@ -50,16 +54,10 @@ public class AuthController {
                         )
                 );
 
-        SecurityContext context = SecurityContextHolder.createEmptyContext();
-        context.setAuthentication(authentication);
-        SecurityContextHolder.setContext(context);
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+        String jwt = jwtUtils.generateJwtToken(authentication);
 
-        request.getSession(true).setAttribute(
-                HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
-                context
-        );
-
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok(Map.of("token", jwt));
     }
 
     @PostMapping("/auth/forgot-password")

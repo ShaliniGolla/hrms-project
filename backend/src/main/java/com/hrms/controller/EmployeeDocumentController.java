@@ -50,13 +50,16 @@ public class EmployeeDocumentController {
         
         Employee employee;
         if (employeeId != null) {
-            String roleName = currentUser.getRole().name();
-            // Allow ADMIN, HR, and REPORTING_MANAGER to upload for others
-            if (!roleName.equals("ADMIN") && !roleName.equals("HR") && !roleName.equals("REPORTING_MANAGER")) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ApiResponse.error("Insufficient permissions to upload for other employees"));
-            }
             employee = employeeRepository.findById(employeeId)
                     .orElseThrow(() -> new RuntimeException("Employee profile not found"));
+
+            boolean isOwner = employee.getUser() != null && employee.getUser().getId().equals(currentUser.getId());
+            String roleName = currentUser.getRole().name();
+
+            // Allow if owner OR if ADMIN, HR, or REPORTING_MANAGER
+            if (!isOwner && !roleName.equals("ADMIN") && !roleName.equals("HR") && !roleName.equals("REPORTING_MANAGER")) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ApiResponse.error("Insufficient permissions to upload for other employees"));
+            }
         } else {
             // Default to current user's employee profile
             employee = employeeRepository.findByUser_Id(currentUser.getId())

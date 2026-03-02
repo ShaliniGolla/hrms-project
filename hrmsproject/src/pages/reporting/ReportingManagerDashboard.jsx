@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import api from "../../utils/api";
+
 import Sidebar from '../../components/Sidebar';
 import LeaveRequestPage from "../employee/LeaveRequestPage";
 import PersonalTimesheetContent from "../employee/PersonalTimesheetContent";
@@ -53,15 +55,7 @@ const ReportingManagerDashboard = () => {
 
   const fetchEmployeeProfile = async () => {
     try {
-      const token = localStorage.getItem("token");
-      const response = await fetch("http://localhost:8080/me/employee", {
-        method: "GET",
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        credentials: "include"
-      });
+      const response = await api("/me/employee");
       if (response.ok) {
         const result = await response.json();
         const employeeData = result.data || result;
@@ -106,21 +100,12 @@ const ReportingManagerDashboard = () => {
   const fetchLeaveData = async (employeeId) => {
     try {
       setLoading(true);
-      const token = localStorage.getItem("token");
-      const balanceResponse = await fetch(`http://localhost:8080/api/leaves/balance/${employeeId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        }
-      });
+      const balanceResponse = await api(`/api/leaves/balance/${employeeId}`);
       if (balanceResponse.ok) {
         const balanceData = await balanceResponse.json();
         setLeaveBalance(balanceData.data);
       }
-      const allLeavesResponse = await fetch(`http://localhost:8080/api/leaves/employee/${employeeId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        }
-      });
+      const allLeavesResponse = await api(`/api/leaves/employee/${employeeId}`);
       if (allLeavesResponse.ok) {
         const allLeavesData = await allLeavesResponse.json();
         let allLeaves = allLeavesData.data || [];
@@ -187,13 +172,7 @@ const ReportingManagerDashboard = () => {
     if (!id) return;
     try {
       setTsLoading(true);
-      const token = localStorage.getItem("token");
-      const response = await fetch(`http://localhost:8080/api/timesheets?employeeId=${id}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-        credentials: "include"
-      });
+      const response = await api(`/api/timesheets?employeeId=${id}`);
       if (response.ok) {
         const result = await response.json();
         const data = result.data || [];
