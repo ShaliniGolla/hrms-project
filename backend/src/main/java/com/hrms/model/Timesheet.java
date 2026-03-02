@@ -21,10 +21,8 @@ public class Timesheet {
     @NotNull
     private LocalDate date;
 
-    @NotNull
     private LocalTime startTime;
 
-    @NotNull
     private LocalTime endTime;
 
     private Double totalHours;
@@ -57,7 +55,9 @@ public class Timesheet {
     @PrePersist
     protected void onCreate() {
         submittedAt = LocalDateTime.now();
-        if (startTime != null && endTime != null) {
+        // Only calculate totalHours from times if totalHours was NOT already set directly.
+        // This prevents @PrePersist from overwriting a totalHours that was explicitly provided.
+        if (totalHours == null && startTime != null && endTime != null) {
             long minutes = java.time.Duration.between(startTime, endTime).toMinutes();
             totalHours = minutes / 60.0;
         }

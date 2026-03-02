@@ -21,6 +21,8 @@ import java.time.LocalDateTime;
 import java.time.Duration;
 import java.util.List;
 import java.util.stream.Collectors;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 
 @Service
 @Transactional
@@ -40,6 +42,9 @@ public class TimesheetService {
 
     @Autowired
     private NotificationService notificationService;
+
+    @PersistenceContext
+    private EntityManager entityManager;
 
     public List<TimesheetDTO> getAllTimesheets(Long employeeId, LocalDate fromDate, LocalDate toDate,
             String status, Integer page, Integer size) {
@@ -215,16 +220,59 @@ public class TimesheetService {
 
     public void saveWeeklyTimesheet(Long employeeId, LocalDate weekStart, List<TimesheetDTO> entries) {
         LocalDate weekEnd = weekStart.plusDays(6);
-        // Clear existing PENDING entries for this week to avoid duplicates
-        // Note: We might want to only clear PENDING ones if we don't want to touch approved ones.
-        // For simplicity and matching user intent "save all again properly", we clear the week.
+
+        // Bulk DELETE via @Modifying @Query — atomic, reliable, flushes & clears automatically
         timesheetRepository.deleteByEmployeeIdAndDateBetween(employeeId, weekStart, weekEnd);
 
-        if (entries != null) {
+        System.out.println("[TimesheetService] Deleted existing entries for employeeId=" + employeeId
+                + " weekStart=" + weekStart + " weekEnd=" + weekEnd);
+        System.out.println("[TimesheetService] Incoming entries count: " + (entries != null ? entries.size() : 0));
+
+        if (entries != null && !entries.isEmpty()) {
+            Employee employee = employeeRepository.findById(employeeId)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Employee not found"));
+
+            int savedCount = 0;
             for (TimesheetDTO dto : entries) {
-                dto.setEmployeeId(employeeId);
-                createTimesheet(dto);
+                try {
+                    Timesheet timesheet = new Timesheet();
+                    timesheet.setEmployee(employee);
+                    timesheet.setDate(dto.getDate());
+                    timesheet.setStartTime(dto.getStartTime());
+                    timesheet.setEndTime(dto.getEndTime());
+                    timesheet.setProject(dto.getProject());
+                    timesheet.setTask(dto.getTask());
+                    timesheet.setNotes(dto.getNotes());
+                    timesheet.setStatus(TimesheetStatus.PENDING);
+                    timesheet.setOnsiteOffshore(dto.getOnsiteOffshore());
+                    timesheet.setBillingLocation(dto.getBillingLocation());
+                    timesheet.setBillable(dto.getBillable());
+                    timesheet.setProjectName(dto.getProjectName());
+                    timesheet.setTaskDescription(dto.getTaskDescription());
+                    timesheet.setCategory(dto.getCategory());
+                    timesheet.setLeaveType(dto.getLeaveType());
+                    // Use totalHours directly from DTO; only compute from times if not provided
+                    if (dto.getTotalHours() != null && dto.getTotalHours() > 0) {
+                        timesheet.setTotalHours(dto.getTotalHours());
+                    } else if (dto.getStartTime() != null && dto.getEndTime() != null) {
+                        Duration duration = Duration.between(dto.getStartTime(), dto.getEndTime());
+                        timesheet.setTotalHours(Math.max(0, duration.toMinutes() / 60.0));
+                    }
+                    timesheetRepository.save(timesheet);
+                    savedCount++;
+                    System.out.println("[TimesheetService] Saved entry #" + savedCount
+                            + " date=" + dto.getDate() + " hours=" + dto.getTotalHours()
+                            + " category=" + dto.getCategory());
+                } catch (Exception e) {
+                    System.err.println("[TimesheetService] FAILED to save entry date=" + dto.getDate()
+                            + " hours=" + dto.getTotalHours() + " error=" + e.getMessage());
+                    throw e; // re-throw so transaction rolls back fully
+                }
             }
+            System.out.println("[TimesheetService] Total saved: " + savedCount + " entries");
+
+            // Send notification after all rows are saved
+            sendWeeklyTimesheetNotification(employeeId, weekStart);
         }
     }
 
@@ -232,50 +280,57 @@ public class TimesheetService {
         try {
             Employee employee = employeeRepository.findById(employeeId).orElse(null);
             if (employee == null) return;
-            
+
             String employeeName = employee.getFirstName() + " " + employee.getLastName();
-            String message = employeeName + " has submitted a weekly timesheet starting from " + weekStart;
-            
-            EmployeeReporting reporting = employeeReportingRepository.findByEmployee(employee).orElse(null);
-            
+            String message = employeeName + " has submitted a weekly timesheet starting from " + weekStart + ".";
+
+            System.out.println("[Notification] Sending timesheet notification for: " + employeeName);
+
+            // Fallback: try both lookup methods
+            EmployeeReporting reporting = employeeReportingRepository.findByEmployee(employee)
+                    .orElseGet(() -> employeeReportingRepository.findByEmployee_Id(employeeId).orElse(null));
+
+            System.out.println("[Notification] EmployeeReporting found: " + (reporting != null));
+
             // Notify RM
-            if (reporting != null && reporting.getReportingManager() != null && reporting.getReportingManager().getUser() != null) {
-                notificationService.createNotification(
-                    reporting.getReportingManager().getUser().getId(),
-                    "New Timesheet Submission",
-                    message,
-                    "TIMESHEET",
-                    null // Maybe link to a week view later
-                );
+            if (reporting != null && reporting.getReportingManager() != null) {
+                Employee rm = reporting.getReportingManager();
+                System.out.println("[Notification] RM: " + rm.getFirstName() + ", User: " + (rm.getUser() != null ? rm.getUser().getId() : "NULL"));
+                if (rm.getUser() != null) {
+                    notificationService.createNotification(
+                        rm.getUser().getId(),
+                        "New Timesheet Submission",
+                        message,
+                        "TIMESHEET",
+                        null
+                    );
+                    System.out.println("[Notification] ✓ Notified RM userId=" + rm.getUser().getId());
+                }
+            } else {
+                System.out.println("[Notification] ⚠ No reporting manager found for: " + employeeName);
             }
-            
+
             // Notify HR
             List<User> hrUsers = userRepository.findByRole(com.hrms.model.Role.HR);
+            System.out.println("[Notification] HR users count: " + hrUsers.size());
             for (User hr : hrUsers) {
-                notificationService.createNotification(
-                    hr.getId(),
-                    "New Timesheet Submission",
-                    message,
-                    "TIMESHEET",
-                    null
-                );
+                notificationService.createNotification(hr.getId(), "New Timesheet Submission", message, "TIMESHEET", null);
+                System.out.println("[Notification] ✓ Notified HR userId=" + hr.getId());
             }
 
             // Notify Admin
             List<User> adminUsers = userRepository.findByRole(com.hrms.model.Role.ADMIN);
+            System.out.println("[Notification] Admin users count: " + adminUsers.size());
             for (User admin : adminUsers) {
-                notificationService.createNotification(
-                    admin.getId(),
-                    "New Timesheet Submission",
-                    message,
-                    "TIMESHEET",
-                    null
-                );
+                notificationService.createNotification(admin.getId(), "New Timesheet Submission", message, "TIMESHEET", null);
+                System.out.println("[Notification] ✓ Notified Admin userId=" + admin.getId());
             }
         } catch (Exception e) {
-            System.err.println("Failed to send weekly timesheet notifications: " + e.getMessage());
+            System.err.println("[Notification] ✗ Failed to send weekly timesheet notifications: " + e.getMessage());
+            e.printStackTrace();
         }
     }
+
 
     public List<TimesheetDTO> getTeamTimesheets(Long managerId) {
         List<Timesheet> timesheets = timesheetRepository.findByManagerId(managerId);

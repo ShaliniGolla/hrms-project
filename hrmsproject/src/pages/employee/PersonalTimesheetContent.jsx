@@ -230,25 +230,20 @@ const PersonalTimesheetContent = ({ employeeId, user, profileResolved = true }) 
             setLoading(true);
             const token = localStorage.getItem("token");
 
-            // Format entries to include startTime/endTime as the backend expects
+            // Format entries to include startTime/endTime
             const formattedEntries = payload.entries.map(entry => {
                 const startTime = "09:00:00";
-                const [h, m] = [Math.floor(entry.totalHours + 9), Math.round((entry.totalHours % 1) * 60)];
-                const endTime = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:00`;
-                return {
-                    ...entry,
-                    employeeId: employeeId, // Ensure employeeId is included for each entry
-                    startTime,
-                    endTime
-                };
+                const totalHrs = entry.totalHours || 0;
+                const endHour = Math.floor(totalHrs + 9);
+                const endMin = Math.round((totalHrs % 1) * 60);
+                const endTime = `${endHour.toString().padStart(2, '0')}:${endMin.toString().padStart(2, '0')}:00`;
+                return { ...entry, employeeId, startTime, endTime };
             });
 
-            const weeklyPayload = {
-                weekStart: payload.weekStart,
-                entries: formattedEntries
-            };
+            const weeklyPayload = { weekStart: payload.weekStart, entries: formattedEntries };
+            console.log('[Timesheet] Saving payload:', JSON.stringify(weeklyPayload, null, 2));
 
-            await fetch('http://localhost:8080/api/timesheets/save-weekly', {
+            const response = await fetch('http://localhost:8080/api/timesheets/save-weekly', {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -258,16 +253,26 @@ const PersonalTimesheetContent = ({ employeeId, user, profileResolved = true }) 
                 body: JSON.stringify(weeklyPayload)
             });
 
+            const result = await response.json().catch(() => null);
+            console.log('[Timesheet] Save response:', response.status, result);
+
+            if (!response.ok) {
+                const errMsg = result?.message || `Server error ${response.status}`;
+                toast.error(`Failed to save: ${errMsg}`);
+                return;
+            }
+
             toast.success("Weekly timesheet saved successfully");
             setView("summary");
             fetchTimesheets(employeeId);
         } catch (err) {
             toast.error("Error saving timesheet");
-            console.error(err);
+            console.error('[Timesheet] Save error:', err);
         } finally {
             setLoading(false);
         }
     };
+
 
     return (
         <div className="h-[600px] max-w-5xl mx-auto flex flex-col overflow-hidden px-4">

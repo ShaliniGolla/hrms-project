@@ -15,10 +15,8 @@ public class TimesheetDTO {
     @NotNull(message = "Date is required")
     private LocalDate date;
 
-    @NotNull(message = "Start time is required")
     private LocalTime startTime;
 
-    @NotNull(message = "End time is required")
     private LocalTime endTime;
 
     private Double totalHours;

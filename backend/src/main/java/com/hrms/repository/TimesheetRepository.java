@@ -3,6 +3,7 @@ package com.hrms.repository;
 import com.hrms.model.Timesheet;
 import com.hrms.model.TimesheetStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -38,5 +39,7 @@ public interface TimesheetRepository extends JpaRepository<Timesheet, Long> {
 
         List<Timesheet> findByReviewedBy(com.hrms.model.User reviewedBy);
 
-        void deleteByEmployeeIdAndDateBetween(Long employeeId, LocalDate startDate, LocalDate endDate);
+        @Modifying(flushAutomatically = true, clearAutomatically = true)
+        @Query("DELETE FROM Timesheet t WHERE t.employee.id = :employeeId AND t.date BETWEEN :startDate AND :endDate")
+        void deleteByEmployeeIdAndDateBetween(@Param("employeeId") Long employeeId, @Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
 }

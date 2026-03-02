@@ -1,16 +1,18 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Bell, CheckCircle, Clock, X } from 'lucide-react';
+import { Bell, CheckCircle, Clock, X, CalendarDays } from 'lucide-react';
+import YearlyHolidayCalendar from '../pages/common/YearlyHolidayCalendar';
 
 const NotificationComponent = () => {
     const [notifications, setNotifications] = useState([]);
     const [unreadCount, setUnreadCount] = useState(0);
     const [isOpen, setIsOpen] = useState(false);
     const [hoveredId, setHoveredId] = useState(null);
+    const [calendarOpen, setCalendarOpen] = useState(false);
     const dropdownRef = useRef(null);
 
     useEffect(() => {
         fetchNotifications();
-        const interval = setInterval(fetchNotifications, 30000); // Poll every 30s
+        const interval = setInterval(fetchNotifications, 30000);
         return () => clearInterval(interval);
     }, []);
 
@@ -28,25 +30,17 @@ const NotificationComponent = () => {
         try {
             const token = localStorage.getItem('token');
             const response = await fetch('http://localhost:8080/api/notifications', {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Accept': 'application/json'
-                },
+                headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' },
                 credentials: 'include'
             });
             if (response.ok) {
                 const result = await response.json();
-                // Normalize: Jackson serializes primitive `boolean isRead` as `"read"` (strips `is` prefix).
-                // We map to always have `isRead` set correctly regardless of backend version.
                 const normalized = (result.data || []).map(n => ({
                     ...n,
                     isRead: !!(n.isRead ?? n.read ?? false)
                 }));
                 setNotifications(normalized);
-                const unread = normalized.filter(n => !n.isRead).length;
-                setUnreadCount(unread);
-            } else {
-                console.error('Failed to fetch notifications:', response.status);
+                setUnreadCount(normalized.filter(n => !n.isRead).length);
             }
         } catch (error) {
             console.error('Error fetching notifications:', error);
@@ -56,19 +50,12 @@ const NotificationComponent = () => {
     const markAsRead = async (id) => {
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch(`http://localhost:8080/api/notifications/${id}/read`, {
+            await fetch(`http://localhost:8080/api/notifications/${id}/read`, {
                 method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Accept': 'application/json'
-                },
+                headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' },
                 credentials: 'include'
             });
-            if (response.ok) {
-                fetchNotifications();
-            } else {
-                console.error('Failed to mark as read:', response.status);
-            }
+            fetchNotifications();
         } catch (error) {
             console.error('Error marking notification as read:', error);
         }
@@ -80,23 +67,15 @@ const NotificationComponent = () => {
             const token = localStorage.getItem('token');
             const response = await fetch(`http://localhost:8080/api/notifications/${id}`, {
                 method: 'DELETE',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Accept': 'application/json'
-                },
+                headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' },
                 credentials: 'include'
             });
             if (response.ok) {
-                // Optimistically remove from local state & update unread count
                 setNotifications(prev => {
                     const deleted = prev.find(n => n.id === id);
-                    if (deleted && !deleted.isRead) {
-                        setUnreadCount(c => Math.max(0, c - 1));
-                    }
+                    if (deleted && !deleted.isRead) setUnreadCount(c => Math.max(0, c - 1));
                     return prev.filter(n => n.id !== id);
                 });
-            } else {
-                console.error('Failed to delete notification:', response.status);
             }
         } catch (error) {
             console.error('Error deleting notification:', error);
@@ -106,29 +85,19 @@ const NotificationComponent = () => {
     const markAllAsRead = async () => {
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch('http://localhost:8080/api/notifications/read-all', {
+            await fetch('http://localhost:8080/api/notifications/read-all', {
                 method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Accept': 'application/json'
-                },
+                headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' },
                 credentials: 'include'
             });
-            if (response.ok) {
-                fetchNotifications();
-            } else {
-                console.error('Failed to mark all as read:', response.status);
-            }
+            fetchNotifications();
         } catch (error) {
             console.error('Error marking all as read:', error);
         }
     };
 
     const getTimeAgo = (dateString) => {
-        const date = new Date(dateString);
-        const now = new Date();
-        const diffInSeconds = Math.floor((now - date) / 1000);
-
+        const diffInSeconds = Math.floor((new Date() - new Date(dateString)) / 1000);
         if (diffInSeconds < 60) return 'just now';
         if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
         if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
@@ -136,109 +105,116 @@ const NotificationComponent = () => {
     };
 
     const toggleDropdown = () => {
-        if (!isOpen) {
-            fetchNotifications();
-        }
+        if (!isOpen) fetchNotifications();
         setIsOpen(!isOpen);
     };
 
     return (
-        <div className="relative" ref={dropdownRef}>
+        /* Wrapper — flex row so calendar icon and bell sit side by side */
+        <div className="flex items-center gap-1">
+
+            {/* ── Holiday Calendar Icon ── */}
             <button
-                onClick={toggleDropdown}
+                onClick={() => setCalendarOpen(true)}
+                title="Holiday Calendar"
                 className="relative p-2 text-brand-blue/60 hover:text-brand-blue hover:bg-brand-blue/5 rounded-xl transition-all"
             >
-                <Bell size={20} strokeWidth={2.5} />
-                {/* Only show red badge when there are unread notifications */}
-                {unreadCount > 0 && (
-                    <span className="absolute top-1.5 right-1.5 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-white">
-                        {unreadCount > 9 ? '9+' : unreadCount}
-                    </span>
-                )}
+                <CalendarDays size={20} strokeWidth={2.5} />
             </button>
 
-            {isOpen && (
-                <div className="absolute right-0 mt-2 w-80 bg-white rounded-2xl shadow-2xl border border-brand-blue/5 overflow-hidden z-[100] animate-in fade-in zoom-in duration-200 origin-top-right">
-                    <div className="p-4 border-b border-brand-blue/5 flex justify-between items-center bg-brand-blue text-white">
-                        <h3 className="font-bold text-xs uppercase tracking-widest">Notifications</h3>
-                        {unreadCount > 0 && (
-                            <button
-                                onClick={markAllAsRead}
-                                className="text-[10px] font-black hover:text-brand-yellow transition-colors underline"
-                            >
-                                Mark all as read
-                            </button>
-                        )}
-                    </div>
+            {/* ── Notification Bell ── */}
+            <div className="relative" ref={dropdownRef}>
+                <button
+                    onClick={toggleDropdown}
+                    className="relative p-2 text-brand-blue/60 hover:text-brand-blue hover:bg-brand-blue/5 rounded-xl transition-all"
+                >
+                    <Bell size={20} strokeWidth={2.5} />
+                    {unreadCount > 0 && (
+                        <span className="absolute top-1.5 right-1.5 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-white">
+                            {unreadCount > 9 ? '9+' : unreadCount}
+                        </span>
+                    )}
+                </button>
 
-                    <div className="max-h-[400px] overflow-y-auto custom-scrollbar bg-slate-50/30">
-                        {notifications.length > 0 ? (
-                            notifications.map((n) => (
-                                <div
-                                    key={n.id}
-                                    className={`p-4 border-b border-brand-blue/5 hover:bg-white transition-colors cursor-pointer relative group ${!n.isRead ? 'bg-brand-blue/5' : ''}`}
-                                    onClick={() => !n.isRead && markAsRead(n.id)}
-                                    onMouseEnter={() => setHoveredId(n.id)}
-                                    onMouseLeave={() => setHoveredId(null)}
-                                >
-                                    <div className="flex gap-3 pr-6">
-                                        <div className={`mt-1 h-2 w-2 rounded-full shrink-0 ${!n.isRead ? 'bg-brand-blue' : 'bg-transparent'}`} />
-                                        <div className="flex-1 min-w-0">
-                                            <p className={`text-xs font-bold ${!n.isRead ? 'text-brand-blue' : 'text-brand-blue/60'}`}>
-                                                {n.title}
-                                            </p>
-                                            <p className="text-[11px] text-brand-blue/40 mt-0.5 line-clamp-2 leading-relaxed">
-                                                {n.message}
-                                            </p>
-                                            <div className="flex items-center gap-2 mt-2">
-                                                <div className="flex items-center gap-1 text-slate-300">
-                                                    <Clock size={10} />
-                                                    <span className="text-[9px] font-bold uppercase tracking-wider">{getTimeAgo(n.createdAt)}</span>
+                {isOpen && (
+                    <div className="absolute right-0 mt-2 w-80 bg-white rounded-2xl shadow-2xl border border-brand-blue/5 overflow-hidden z-[100] animate-in fade-in zoom-in duration-200 origin-top-right">
+                        <div className="p-4 border-b border-brand-blue/5 flex justify-between items-center bg-brand-blue text-white">
+                            <h3 className="font-bold text-xs uppercase tracking-widest">Notifications</h3>
+                            {unreadCount > 0 && (
+                                <button onClick={markAllAsRead} className="text-[10px] font-black hover:text-brand-yellow transition-colors underline">
+                                    Mark all as read
+                                </button>
+                            )}
+                        </div>
+
+                        <div className="max-h-[400px] overflow-y-auto custom-scrollbar bg-slate-50/30">
+                            {notifications.length > 0 ? (
+                                notifications.map((n) => (
+                                    <div
+                                        key={n.id}
+                                        className={`p-4 border-b border-brand-blue/5 hover:bg-white transition-colors cursor-pointer relative group ${!n.isRead ? 'bg-brand-blue/5' : ''}`}
+                                        onClick={() => !n.isRead && markAsRead(n.id)}
+                                        onMouseEnter={() => setHoveredId(n.id)}
+                                        onMouseLeave={() => setHoveredId(null)}
+                                    >
+                                        <div className="flex gap-3 pr-6">
+                                            <div className={`mt-1 h-2 w-2 rounded-full shrink-0 ${!n.isRead ? 'bg-brand-blue' : 'bg-transparent'}`} />
+                                            <div className="flex-1 min-w-0">
+                                                <p className={`text-xs font-bold ${!n.isRead ? 'text-brand-blue' : 'text-brand-blue/60'}`}>{n.title}</p>
+                                                <p className="text-[11px] text-brand-blue/40 mt-0.5 line-clamp-2 leading-relaxed">{n.message}</p>
+                                                <div className="flex items-center gap-2 mt-2">
+                                                    <div className="flex items-center gap-1 text-slate-300">
+                                                        <Clock size={10} />
+                                                        <span className="text-[9px] font-bold uppercase tracking-wider">{getTimeAgo(n.createdAt)}</span>
+                                                    </div>
+                                                    <span className="text-[10px] text-brand-blue/20">•</span>
+                                                    <span className="text-[9px] font-black text-brand-blue/20 uppercase tracking-widest">{n.type}</span>
                                                 </div>
-                                                <span className="text-[10px] text-brand-blue/20">•</span>
-                                                <span className="text-[9px] font-black text-brand-blue/20 uppercase tracking-widest">{n.type}</span>
                                             </div>
                                         </div>
+
+                                        {/* Unread → green tick on hover */}
+                                        {!n.isRead && (
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); markAsRead(n.id); }}
+                                                className="absolute right-4 top-4 opacity-0 group-hover:opacity-100 text-brand-blue/20 hover:text-brand-blue transition-all"
+                                                title="Mark as read"
+                                            >
+                                                <CheckCircle size={14} />
+                                            </button>
+                                        )}
+
+                                        {/* Read → red × on hover to delete */}
+                                        {n.isRead && hoveredId === n.id && (
+                                            <button
+                                                onClick={(e) => deleteNotification(n.id, e)}
+                                                className="absolute right-4 top-4 flex items-center justify-center w-5 h-5 rounded-full bg-red-100 hover:bg-red-500 text-red-500 hover:text-white transition-all duration-150 shadow-sm"
+                                                title="Dismiss notification"
+                                            >
+                                                <X size={11} strokeWidth={3} />
+                                            </button>
+                                        )}
                                     </div>
-
-                                    {/* Unread: show green checkmark to mark as read */}
-                                    {!n.isRead && (
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                markAsRead(n.id);
-                                            }}
-                                            className="absolute right-4 top-4 opacity-0 group-hover:opacity-100 text-brand-blue/20 hover:text-brand-blue transition-all"
-                                            title="Mark as read"
-                                        >
-                                            <CheckCircle size={14} />
-                                        </button>
-                                    )}
-
-                                    {/* Read: show red X icon on hover to delete from list & database */}
-                                    {n.isRead && hoveredId === n.id && (
-                                        <button
-                                            onClick={(e) => deleteNotification(n.id, e)}
-                                            className="absolute right-4 top-4 flex items-center justify-center w-5 h-5 rounded-full bg-red-100 hover:bg-red-500 text-red-500 hover:text-white transition-all duration-150 shadow-sm"
-                                            title="Dismiss notification"
-                                        >
-                                            <X size={11} strokeWidth={3} />
-                                        </button>
-                                    )}
+                                ))
+                            ) : (
+                                <div className="p-10 text-center">
+                                    <p className="text-[10px] font-bold text-brand-blue/20 uppercase tracking-widest">No notifications yet</p>
                                 </div>
-                            ))
-                        ) : (
-                            <div className="p-10 text-center">
-                                <p className="text-[10px] font-bold text-brand-blue/20 uppercase tracking-widest">No notifications yet</p>
-                            </div>
-                        )}
-                    </div>
+                            )}
+                        </div>
 
-                    <div className="p-3 bg-white border-t border-brand-blue/5 text-center">
-                        <p className="text-[9px] font-black text-brand-blue/20 uppercase tracking-widest leading-none">Stay updated with your activities</p>
+                        <div className="p-3 bg-white border-t border-brand-blue/5 text-center">
+                            <p className="text-[9px] font-black text-brand-blue/20 uppercase tracking-widest leading-none">Stay updated with your activities</p>
+                        </div>
                     </div>
-                </div>
-            )}
+                )}
+            </div>
+
+            {/* ── Holiday Calendar Full-screen Modal ── */}
+            <YearlyHolidayCalendar
+                isOpen={calendarOpen}
+                onClose={() => setCalendarOpen(false)}
+            />
         </div>
     );
 };

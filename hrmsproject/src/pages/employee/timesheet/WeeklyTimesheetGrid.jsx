@@ -9,7 +9,7 @@ const WeeklyTimesheetGrid = ({ weekData, onBack, onSave, employeeId, approvedLea
 
     // Project rows
     const [projectRows, setProjectRows] = useState([
-        { id: Date.now(), projectId: '', projectName: '', taskId: '', taskDesc: '', onsite: 'Offshore', billable: 'Billable', location: 'India', hours: Array(7).fill({ value: '', id: null }), comment: '' }
+        { id: Date.now(), projectId: '', projectName: '', taskId: '', taskDesc: '', onsite: 'Offshore', billable: 'Billable', location: 'India', hours: Array.from({ length: 7 }, () => ({ value: '', id: null })), comment: '' }
     ]);
 
     // TruTime rows (Swipe)
@@ -58,7 +58,18 @@ const WeeklyTimesheetGrid = ({ weekData, onBack, onSave, employeeId, approvedLea
 
                     if (dayIdx !== -1) {
                         if (entry.category === 'PROJECT') {
-                            const key = `${entry.projectName}-${entry.taskDescription}`;
+                            // Use ALL identifying fields as the composite key so that rows
+                            // with different projectId (or any other field) are NOT merged together.
+                            const key = [
+                                entry.project || '',
+                                entry.projectName || '',
+                                entry.task || '',
+                                entry.taskDescription || '',
+                                entry.onsiteOffshore || '',
+                                String(entry.billable),
+                                entry.billingLocation || '',
+                                entry.notes || ''
+                            ].join('||');
                             if (!projects[key]) {
                                 projects[key] = {
                                     id: Date.now() + Math.random(),
@@ -69,7 +80,7 @@ const WeeklyTimesheetGrid = ({ weekData, onBack, onSave, employeeId, approvedLea
                                     onsite: entry.onsiteOffshore || 'Offshore',
                                     billable: entry.billable ? 'Billable' : 'Non-Billable',
                                     location: entry.billingLocation || 'India',
-                                    hours: Array(7).fill(null).map(() => ({ value: '', id: null })),
+                                    hours: Array.from({ length: 7 }, () => ({ value: '', id: null })),
                                     comment: entry.notes || ''
                                 };
                             }
@@ -132,7 +143,7 @@ const WeeklyTimesheetGrid = ({ weekData, onBack, onSave, employeeId, approvedLea
 
             const projectRowsList = Object.values(projects);
             if (projectRowsList.length > 0) setProjectRows(projectRowsList);
-            else setProjectRows([{ id: Date.now(), projectId: '', projectName: '', taskId: '', taskDesc: '', onsite: 'Offshore', billable: 'Billable', location: 'India', hours: Array(7).fill({ value: '', id: null }), comment: '' }]);
+            else setProjectRows([{ id: Date.now(), projectId: '', projectName: '', taskId: '', taskDesc: '', onsite: 'Offshore', billable: 'Billable', location: 'India', hours: Array.from({ length: 7 }, () => ({ value: '', id: null })), comment: '' }]);
 
             setTruTimeRows({ swipe: swipes });
             setLeaveRows({
@@ -145,12 +156,13 @@ const WeeklyTimesheetGrid = ({ weekData, onBack, onSave, employeeId, approvedLea
     }, [weekData, approvedLeaves, holidays]);
 
     const handleAddRow = () => {
-        setProjectRows([...projectRows, { id: Date.now(), projectId: '', projectName: '', taskId: '', taskDesc: '', onsite: 'Offshore', billable: 'Billable', location: 'India', hours: Array(7).fill({ value: '', id: null }), comment: '' }]);
+        setProjectRows([...projectRows, { id: Date.now(), projectId: '', projectName: '', taskId: '', taskDesc: '', onsite: 'Offshore', billable: 'Billable', location: 'India', hours: Array.from({ length: 7 }, () => ({ value: '', id: null })), comment: '' }]);
     };
 
     const handleRowChange = (rowIndex, field, value) => {
-        const updated = [...projectRows];
-        updated[rowIndex][field] = value;
+        const updated = projectRows.map((row, idx) =>
+            idx === rowIndex ? { ...row, [field]: value } : row
+        );
         setProjectRows(updated);
     };
 
@@ -198,8 +210,13 @@ const WeeklyTimesheetGrid = ({ weekData, onBack, onSave, employeeId, approvedLea
 
     const handleHourChange = (rowIndex, dayIndex, value) => {
         // Validation removed to allow "two entries in single column" (e.g. 4h Leave + 4h Work)
-        const updated = [...projectRows];
-        updated[rowIndex].hours[dayIndex] = { ...updated[rowIndex].hours[dayIndex], value };
+        const updated = projectRows.map((row, rIdx) => {
+            if (rIdx !== rowIndex) return row;
+            const newHours = row.hours.map((h, dIdx) =>
+                dIdx === dayIndex ? { ...h, value } : h
+            );
+            return { ...row, hours: newHours };
+        });
         setProjectRows(updated);
     };
 

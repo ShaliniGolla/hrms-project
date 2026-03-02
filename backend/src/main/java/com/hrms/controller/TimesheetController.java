@@ -153,8 +153,8 @@ public class TimesheetController {
         List<TimesheetDTO> dtos = entriesList.stream().map(m -> {
             TimesheetDTO d = new TimesheetDTO();
             d.setDate(LocalDate.parse(m.get("date").toString()));
-            d.setStartTime(java.time.LocalTime.parse(m.get("startTime").toString()));
-            d.setEndTime(java.time.LocalTime.parse(m.get("endTime").toString()));
+            if (m.get("startTime") != null) d.setStartTime(java.time.LocalTime.parse(m.get("startTime").toString()));
+            if (m.get("endTime") != null) d.setEndTime(java.time.LocalTime.parse(m.get("endTime").toString()));
             d.setProject(m.get("project") != null ? m.get("project").toString() : null);
             d.setTask(m.get("task") != null ? m.get("task").toString() : null);
             d.setNotes(m.get("notes") != null ? m.get("notes").toString() : null);
@@ -163,10 +163,15 @@ public class TimesheetController {
             d.setTaskDescription(m.get("taskDescription") != null ? m.get("taskDescription").toString() : null);
             d.setOnsiteOffshore(m.get("onsiteOffshore") != null ? m.get("onsiteOffshore").toString() : null);
             d.setBillingLocation(m.get("billingLocation") != null ? m.get("billingLocation").toString() : null);
-            d.setBillable(m.get("billable") != null ? (Boolean)m.get("billable") : null);
+            d.setBillable(m.get("billable") != null ? (Boolean) m.get("billable") : null);
             d.setLeaveType(m.get("leaveType") != null ? m.get("leaveType").toString() : null);
+            // Map totalHours directly from the frontend payload
+            if (m.get("totalHours") != null) {
+                d.setTotalHours(Double.parseDouble(m.get("totalHours").toString()));
+            }
             return d;
         }).collect(Collectors.toList());
+
 
         timesheetService.saveWeeklyTimesheet(employeeId, weekStart, dtos);
         return ResponseEntity.ok(ApiResponse.success("Weekly timesheet saved successfully", null));

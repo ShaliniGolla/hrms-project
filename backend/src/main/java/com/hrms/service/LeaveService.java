@@ -194,46 +194,55 @@ public class LeaveService {
         try {
             Employee employee = leave.getEmployee();
             String employeeName = employee.getFirstName() + " " + employee.getLastName();
-            String message = employeeName + " has submitted a " + leave.getLeaveType() + " leave request for " + leave.getDaysCount() + " days.";
-            
-            EmployeeReporting reporting = employeeReportingRepository.findByEmployee(employee).orElse(null);
-            
+            String leaveTypeName = leave.getLeaveType().name();
+            String message = employeeName + " has submitted a " + leaveTypeName
+                    + " leave request from " + leave.getStartDate() + " to " + leave.getEndDate()
+                    + " (" + leave.getDaysCount() + " days).";
+
+            System.out.println("[Notification] Sending leave notification for: " + employeeName);
+
+            // Try to find reporting
+            EmployeeReporting reporting = employeeReportingRepository.findByEmployee(employee)
+                    .orElseGet(() -> employeeReportingRepository.findByEmployee_Id(employee.getId()).orElse(null));
+
+            System.out.println("[Notification] EmployeeReporting found: " + (reporting != null));
+
             // Notify RM
-            if (reporting != null && reporting.getReportingManager() != null && reporting.getReportingManager().getUser() != null) {
-                notificationService.createNotification(
-                    reporting.getReportingManager().getUser().getId(),
-                    "New Leave Request",
-                    message,
-                    "LEAVE",
-                    leave.getId()
-                );
+            if (reporting != null && reporting.getReportingManager() != null) {
+                Employee rm = reporting.getReportingManager();
+                System.out.println("[Notification] RM: " + rm.getFirstName() + ", User: " + (rm.getUser() != null ? rm.getUser().getId() : "NULL"));
+                if (rm.getUser() != null) {
+                    notificationService.createNotification(
+                        rm.getUser().getId(),
+                        "New Leave Request",
+                        message,
+                        "LEAVE",
+                        leave.getId()
+                    );
+                    System.out.println("[Notification] ✓ Notified RM userId=" + rm.getUser().getId());
+                }
+            } else {
+                System.out.println("[Notification] ⚠ No reporting manager found for employee: " + employeeName);
             }
-            
+
             // Notify HR
             List<User> hrUsers = userRepository.findByRole(com.hrms.model.Role.HR);
+            System.out.println("[Notification] HR users count: " + hrUsers.size());
             for (User hr : hrUsers) {
-                notificationService.createNotification(
-                    hr.getId(),
-                    "New Leave Request",
-                    message,
-                    "LEAVE",
-                    leave.getId()
-                );
+                notificationService.createNotification(hr.getId(), "New Leave Request", message, "LEAVE", leave.getId());
+                System.out.println("[Notification] ✓ Notified HR userId=" + hr.getId());
             }
 
             // Notify Admin
             List<User> adminUsers = userRepository.findByRole(com.hrms.model.Role.ADMIN);
+            System.out.println("[Notification] Admin users count: " + adminUsers.size());
             for (User admin : adminUsers) {
-                notificationService.createNotification(
-                    admin.getId(),
-                    "New Leave Request",
-                    message,
-                    "LEAVE",
-                    leave.getId()
-                );
+                notificationService.createNotification(admin.getId(), "New Leave Request", message, "LEAVE", leave.getId());
+                System.out.println("[Notification] ✓ Notified Admin userId=" + admin.getId());
             }
         } catch (Exception e) {
-            System.err.println("Failed to send leave in-app notifications: " + e.getMessage());
+            System.err.println("[Notification] ✗ Failed to send leave in-app notifications: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
